@@ -69,8 +69,10 @@
 		}
 		if (!$mod_rewrite) {
 			// last solution; call a specific page as "mod-rewrite" have been enabled; based on result, we decide.
-			$result = @file_get_contents("{$hostName}/user/login/");
-			$mod_rewrite = ($result == "ok" ? TRUE : FALSE);
+			$headers = get_headers(App::$param['host'] . "/user/login/", 1);
+			if ($headers[0] == "HTTP/1.1 200 OK") {
+				$mod_rewrite= true;
+			}
 		}
 
 		if ($mod_rewrite) {

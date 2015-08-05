@@ -91,7 +91,6 @@ Viewer = function () {
                             // title
                             list.append($("<li>" + title + "</li>"));
                             list.append(li.append(classUl));
-
                         }
 
                     }

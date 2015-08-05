@@ -17,6 +17,7 @@
     width: 100%;
     height: 100%;
 }
+
 .pane, .modal-title {
     font-family: 'Open Sans Condensed', sans-serif, sans-serif !important;
     font-size: 14px !important;
@@ -73,6 +74,7 @@
 .popover-content {
     overflow: auto;
 }
+
 .popover-content td {
     padding: 0 !important;
 }
@@ -190,7 +192,6 @@ input[type="radio"], input[type="checkbox"] {
 
 .legend-container td {
     border: none !important;
-
 }
 
 .nav > li, .dropdown-menu > li {
@@ -198,7 +199,7 @@ input[type="radio"], input[type="checkbox"] {
     line-height: normal !important;
 }
 
-.nav-tabs > li > a, .dropdown-menu > li > a{
+.nav-tabs > li > a, .dropdown-menu > li > a {
     font-size: 14px !important;
     font-family: 'Open Sans Condensed', sans-serif, sans-serif !important;
     padding: 6px 10px !important;
@@ -230,20 +231,24 @@ input[type="radio"], input[type="checkbox"] {
     margin-left: 5px;
     font-size: 14px;
 }
+
 .btn {
     font-family: 'Open Sans Condensed', sans-serif, sans-serif !important;
     line-height: 1 !important;
 }
-.popover-content td, .popover-content span{
+
+.popover-content td, .popover-content span {
     vertical-align: top !important;
     font-size: 1em;
     font-family: 'Open Sans Condensed', sans-serif, sans-serif !important;
     font-size: 14px !important;
 }
+
 .legend-container > ul > li {
     font-size: 14px !important;
     font-family: 'Open Sans Condensed', sans-serif, sans-serif;
 }
+
 .legend-text {
     margin-left: 5px;
     font-size: 14px;
@@ -255,6 +260,7 @@ input[type="radio"], input[type="checkbox"] {
     padding-left: 0;
     margin-bottom: 10px;
 }
+
 .body2 {
     position: absolute;
     font-family: 'Open Sans Condensed', sans-serif, sans-serif;
@@ -262,5 +268,9 @@ input[type="radio"], input[type="checkbox"] {
     overflow-y: scroll;
     background-color: #ffffff;
     width: 100%;
+}
+
+.legend-container {
+    display: none;
 }
 
