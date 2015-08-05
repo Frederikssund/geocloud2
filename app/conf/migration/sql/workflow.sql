@@ -14,8 +14,3 @@ CREATE TABLE settings.workflow
   operation character varying(255),
   created timestamp with time zone DEFAULT ('now'::text)::timestamp(0) with time zone
 )
-WITH (
-OIDS=FALSE
-);
-ALTER TABLE settings.workflow
-OWNER TO postgres;
