@@ -12,6 +12,7 @@ class Baselayerjs extends \app\inc\Controller
         echo "epsg: '" . ((\app\conf\App::$param['epsg']) ? : "4326") . "',\n";
         echo "extraShareFields: " . ((\app\conf\App::$param['extraShareFields']) ? "true": "false") . ",\n";
         echo "showDownloadOtionsInHeron: " . ((\app\conf\App::$param['showDownloadOtionsInHeron']) ? "true": "false") . ",\n";
+        echo "basic: " . ((\app\conf\App::$param['basic']) ? "true": "false") . ",\n";
         echo "esIndexingInGui: " . ((\app\conf\App::$param['esIndexingInGui']) ? "true": "false") . ",\n";
         echo "hideUngroupedLayers: " . ((\app\conf\App::$param['hideUngroupedLayers']) ? "true": "false") . ",\n";
         echo "staticMapHost: '" . ((\app\conf\App::$param['staticMapHost']) ? : \app\conf\App::$param['host']) . "',\n";

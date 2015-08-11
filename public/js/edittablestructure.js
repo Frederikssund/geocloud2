@@ -195,7 +195,8 @@ tableStructure.init = function (record, screenName) {
                     dataIndex: "column",
                     sortable: true,
                     editor: new Ext.form.TextField({
-                        allowBlank: false
+                        allowBlank: false,
+                        readOnly: window.gc2Options.basic
                     }),
                     width: 60
                 },
@@ -230,29 +231,33 @@ tableStructure.init = function (record, screenName) {
                     xtype: 'checkcolumn',
                     header: __("Show in click info"),
                     dataIndex: 'querable',
-                    width: 40
+                    width: 40,
+                    hidden: window.gc2Options.basic
                 },
                 {
                     id: "mouseover",
                     xtype: 'checkcolumn',
                     header: __("Show in mouse-over"),
                     dataIndex: 'mouseover',
-                    width: 40
+                    width: 40,
+                    hidden: window.gc2Options.basic
                 },
                 {
                     id: "searchable",
                     xtype: 'checkcolumn',
                     header: __("Searchable"),
                     dataIndex: 'searchable',
-                    width: 40
+                    width: 40,
+                    hidden: window.gc2Options.basic
                 },
                 {
                     id: "filter",
                     xtype: 'checkcolumn',
                     header: __("Enable filtering"),
                     dataIndex: 'filter',
-                    width: 40
-                }, {
+                    width: 40,
+                    hidden: window.gc2Options.basic
+                },{
                     id: "conflict",
                     xtype: 'checkcolumn',
                     header: __("Show in conflict"),
@@ -292,7 +297,8 @@ tableStructure.init = function (record, screenName) {
                     width: 80,
                     editor: new Ext.form.TextField({
                         allowBlank: true
-                    })
+                    }),
+                    hidden: window.gc2Options.basic
                 }
             ]
         }),
@@ -345,7 +351,7 @@ tableStructure.init = function (record, screenName) {
                 }
             }
         },
-        tbar: [
+        tbar: window.gc2Options.basic || [
             {
                 xtype: 'form',
                 layout: 'hbox',

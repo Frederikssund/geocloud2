@@ -302,21 +302,23 @@ $(window).ready(function () {
                         mode: 'local',
                         typeAhead: false,
                         editable: false,
-                        triggerAction: 'all'
-                    }
+                        triggerAction: 'all',
+                    },
+                    hidden: window.gc2Options.basic
                 },
                 {
                     xtype: 'checkcolumn',
                     header: __("Editable"),
                     dataIndex: 'editable',
-                    width: 50
+                    width: 50,
+                    hidden: window.gc2Options.basic
                 },
                 {
                     xtype: 'checkcolumn',
                     header: __("Skip conflict"),
                     dataIndex: 'skipconflict',
                     hidden: (window.gc2Options.showConflictOptions !== null && window.gc2Options.showConflictOptions[screenName] === true) ? false : true,
-                    width: 50
+                    width: 70
                 },
                 {
                     header: __("Tile cache"),
@@ -358,7 +360,9 @@ $(window).ready(function () {
                     renderer: function () {
                         return ('<a href="#">' + __("Clear") + '</a>');
                     },
-                    width: 70
+                    width: 70,
+                    hidden: window.gc2Options.basic
+
                 }
             ]
         }),
@@ -367,7 +371,8 @@ $(window).ready(function () {
                 text: '<i class="icon-user btn-gc"></i> ' + __('Privileges'),
                 id: 'privileges-btn',
                 handler: onPrivileges,
-                disabled: true
+                disabled: true,
+                hidden: window.gc2Options.basic
 
             },
             {
@@ -375,24 +380,26 @@ $(window).ready(function () {
                 id: 'workflow-btn',
                 handler: onWorkflow,
                 disabled: true,
-                hidden: !enableWorkflow
+                hidden: !enableWorkflow || window.gc2Options.basic,
             },
             {
                 text: '<i class="icon-camera btn-gc"></i> ' + __('CartoMobile'),
                 handler: onEditCartomobile,
                 id: 'cartomobile-btn',
-                disabled: true
+                disabled: true,
+                hidden: window.gc2Options.basic
             },
             {
                 text: '<i class="icon-cog btn-gc"></i> ' + __('Advanced'),
                 handler: onEditMoreSettings,
                 id: 'advanced-btn',
-                disabled: true
+                disabled: true,
+                hidden: window.gc2Options.basic
             },
             {
                 text: '<i class="icon-lock btn-gc"></i> ' + __('Services'),
-                handler: onGlobalSettings
-
+                handler: onGlobalSettings,
+                hidden: window.gc2Options.basic
             },
             {
                 text: '<i class="icon-remove btn-gc"></i> ' + __('Clear tile cache'),
@@ -431,43 +438,48 @@ $(window).ready(function () {
             {
                 text: '<i class="icon-plus btn-gc"></i> ' + __('New layer'),
                 disabled: (subUser === schema || subUser === false) ? false : true,
+                hidden: window.gc2Options.basic,
                 handler: function () {
                     onAdd();
                 }
             },
-            '-',
+            (window.gc2Options.basic ? '' : '-'),
             {
                 text: '<i class="icon-arrow-right btn-gc"></i> ' + __('Move layers'),
                 disabled: true,
+                hidden: window.gc2Options.basic,
                 id: 'movelayer-btn',
                 handler: function () {
                     onMove();
                 }
             },
-            '-',
+            (window.gc2Options.basic ? '' : '-'),
             {
                 text: '<i class="icon-retweet btn-gc"></i> ' + __('Rename layer'),
                 disabled: true,
+                hidden: window.gc2Options.basic,
                 id: 'renamelayer-btn',
                 handler: function () {
                     onRename();
                 }
             },
-            '-',
+            (window.gc2Options.basic ? '' : '-'),
             {
                 text: '<i class="icon-trash btn-gc"></i> ' + __('Delete layers'),
                 disabled: true,
+                hidden: window.gc2Options.basic,
                 id: 'deletelayer-btn',
                 handler: function () {
                     onDelete();
                 }
             },
-            '-',
+            (window.gc2Options.basic ? '' : '-'),
             {
                 text: __('Copy properties'),
                 id: 'copy-properties-btn',
                 tooltip: __("Copy all properties from another layer"),
                 disabled: true,
+                hidden: window.gc2Options.basic,
                 handler: function () {
                     var record = grid.getSelectionModel().getSelected();
                     if (!record) {
@@ -613,21 +625,21 @@ $(window).ready(function () {
                     }).show(this);
                 }
             },
-
-            '-',
+            (window.gc2Options.basic ? '' : '-'),
             {
                 text: '<i class="icon-th btn-gc"></i> ' + __('Schema'),
                 disabled: subUser ? true : false,
+                hidden: window.gc2Options.basic,
                 menu: new Ext.menu.Menu({
                     items: [
                         {
-                            text: __('Rename schema'),
+                            text: '<i class="icon-retweet btn-gc btn-gc-dd"></i>' + __('Rename schema'),
                             handler: function () {
                                 onSchemaRename();
                             }
                         },
                         {
-                            text: __('Delete schema'),
+                            text: '<i class="icon-trash btn-gc btn-gc-dd"></i>' + __('Delete schema'),
                             handler: function () {
                                 onSchemaDelete();
                             }
@@ -652,6 +664,7 @@ $(window).ready(function () {
                 width: 150,
                 id: 'schemaform',
                 disabled: subUser ? true : false,
+                hidden: window.gc2Options.basic,
                 items: [
                     {
                         xtype: 'textfield',
@@ -666,6 +679,7 @@ $(window).ready(function () {
                 text: '<i class="icon-plus btn-gc"></i>',
                 tooltip: __('New schema'),
                 disabled: subUser ? true : false,
+                hidden: window.gc2Options.basic,
                 handler: function () {
                     var f = Ext.getCmp('schemaform');
                     if (f.form.isValid()) {
@@ -2161,6 +2175,7 @@ $(window).ready(function () {
             {
                 xtype: "panel",
                 title: __('Map'),
+                id: "mapPanel",
                 layout: 'border',
                 items: [
                     {
@@ -2598,6 +2613,7 @@ $(window).ready(function () {
                 xtype: "panel",
                 title: __('Log'),
                 layout: 'border',
+                id: "logPanel",
                 listeners: {
                     activate: function () {
                         Ext.fly(this.ownerCt.getTabEl(this)).on({
@@ -2649,6 +2665,15 @@ $(window).ready(function () {
     // Hide tab if workflow is not available for the db
     if (!enableWorkflow) {
         tabs.hideTabStripItem(Ext.getCmp('workflowPanel'));
+    }
+
+    if (window.gc2Options.basic) {
+        Ext.getCmp("mainTabs").activate(1);
+        tabs.hideTabStripItem(Ext.getCmp('schedulerPanel'));
+        tabs.hideTabStripItem(Ext.getCmp('workflowPanel'));
+        tabs.hideTabStripItem(Ext.getCmp('logPanel'));
+        tabs.hideTabStripItem(Ext.getCmp('mapPanel'));
+
     }
 
     writeFiles = function (clearCachedLayer, map) {

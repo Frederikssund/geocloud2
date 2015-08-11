@@ -140,6 +140,12 @@ q:after, q:before {
     margin-top: -1px !important
 }
 
+.btn-gc-dd {
+    margin-left:-23px;
+    margin-right:8px;
+    position: relative
+}
+
 #upload a {
     z-index: 2000;
     position: absolute;
