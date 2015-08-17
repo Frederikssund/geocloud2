@@ -380,7 +380,7 @@ $(window).ready(function () {
                 id: 'workflow-btn',
                 handler: onWorkflow,
                 disabled: true,
-                hidden: !enableWorkflow || window.gc2Options.basic,
+                hidden: !enableWorkflow || window.gc2Options.basic
             },
             {
                 text: '<i class="icon-camera btn-gc"></i> ' + __('CartoMobile'),
