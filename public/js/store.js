@@ -302,7 +302,7 @@ $(window).ready(function () {
                         mode: 'local',
                         typeAhead: false,
                         editable: false,
-                        triggerAction: 'all',
+                        triggerAction: 'all'
                     },
                     hidden: window.gc2Options.basic
                 },
