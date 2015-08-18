@@ -137,18 +137,18 @@ while ($rowSubUSers = $postgisObject->fetchRow($res)) {
                 <div style="float: right">
                     <a data-toggle="tooltip" data-placement="top"
                        title="Open '<%= this . schema %>' in the response Map Viewer"
-                       class="btn btn-xs btn-default" target="_blank"
+                       class="btn btn-xs btn-default hide-in-basic" target="_blank"
                        href="<?php echo $cdnHost . "/apps/viewer/" ?><%= db %>/<%= this . schema %>"><span>Viewer</span>
                     </a>
                     <a data-toggle="tooltip" data-placement="top"
                        title="Open '<%= this . schema %>' in the advanced Map Client"
-                       class="btn btn-xs btn-default" target="_blank"
+                       class="btn btn-xs btn-default hide-in-basic" target="_blank"
                        href="<?php echo $cdnHost . "/apps/mapclient/" ?><%= db %>/<%= this . schema %>"><span>Map client</span>
                     </a>
                     <?php if (App::$param['logstashHost']) { ?>
                     <a data-toggle="tooltip" data-placement="top" data-schema="<%= this . schema %>"
                        title="See statistics for '<%= this . schema %>'"
-                       class="btn btn-xs btn-default fixed-width logstash"><span
+                       class="btn btn-xs btn-default fixed-width logstash hide-in-basic"><span
                             class="glyphicon glyphicon-stats"></span>
                     </a>
                     <?php } ?>
