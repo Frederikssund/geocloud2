@@ -307,10 +307,14 @@ h2 span i {
 #schema-list > table > thead > tr > th:last-child, #schema-list > table > tbody > tr > td:nth-child(n+2) {
     text-align: right;
 }
-#logstash-modal  .modal-dialog {
+
+#logstash-modal .modal-dialog {
     width: 800px;
     height: 600px;
 }
-#logstash-modal  .modal-body {
+
+#logstash-modal .modal-body {
     height: 500px;
 }
+
+.hide-in-basic{display: none;}
