@@ -231,8 +231,7 @@ tableStructure.init = function (record, screenName) {
                     xtype: 'checkcolumn',
                     header: __("Show in click info"),
                     dataIndex: 'querable',
-                    width: 40,
-                    hidden: window.gc2Options.basic
+                    width: 40
                 },
                 {
                     id: "mouseover",
