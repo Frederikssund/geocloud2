@@ -472,6 +472,11 @@ MapCentia.setup = function () {
         }
         catch (e) {
         }
+        try {
+            customSearchWin.hide();
+        }
+        catch (e) {
+        }
     }
     cleanUpConflict = function () {
         try {
@@ -1303,6 +1308,7 @@ MapCentia.init = function () {
                 id: "customSearch",
                 toggleGroup: "conflict",
                 handler: function (objRef) {
+                    cleanUpConflict();
                     customSearchWin = new Ext.Window({
                         title: "Find",
                         layout: 'fit',
@@ -1313,7 +1319,14 @@ MapCentia.init = function () {
                         border: false,
                         html: '<div style="padding: 5px" id="searchContent"><input class="typeahead" type="text" id="custom-search" name="custom-search" value="" placeholder="Søg på adresse eller matrikelnr." /></div>',
                         x: 300,
-                        y: 40
+                        y: 40,
+                        listeners: {
+                            hide: {
+                                fn: function (el, e) {
+                                    cleanUpConflict();
+                                }
+                            }
+                        }
                     });
                     if (typeof(objRef) === "object") {
                         customSearchWin.show(objRef);
