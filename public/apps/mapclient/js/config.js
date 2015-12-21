@@ -1324,6 +1324,7 @@ MapCentia.init = function () {
                             hide: {
                                 fn: function (el, e) {
                                     cleanUpConflict();
+                                    Ext.getCmp("customSearch").toggle(false);
                                 }
                             }
                         }
@@ -1342,11 +1343,13 @@ MapCentia.init = function () {
                                 sql: null,
                                 pointToLayer: null,
                                 onLoad: function () {
-                                    MapCentia.gc2.zoomToExtentOfgeoJsonStore(placeStore);
+                                    setTimeout(function () {
+                                        MapCentia.gc2.zoomToExtentOfgeoJsonStore(placeStore);
+                                    }, 300);
                                     deactivateControllers();
                                     var wkt = new OpenLayers.Format.WKT().write(placeStore.layer.features[0]);
                                     conflict(wkt);
-                                   }
+                                }
                             });
                         $('#custom-search').typeahead({
                             highlight: false
@@ -1432,6 +1435,17 @@ MapCentia.init = function () {
                         });
                         $('#custom-search').bind('typeahead:selected', function (obj, datum, name) {
                             if ((type1 === "adresse" && name === "adresse") || (type2 === "jordstykke" && name === "matrikel")) {
+                                cleanUpConflict();
+                                try {
+                                    gridWin.close();
+                                }
+                                catch (e) {
+                                }
+                                try {
+                                    gridPanel.remove(grid);
+                                }
+                                catch (e) {
+                                }
                                 placeStore.reset();
 
                                 if (name === "matrikel") {
