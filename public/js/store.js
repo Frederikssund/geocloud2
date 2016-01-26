@@ -371,38 +371,32 @@ $(window).ready(function () {
         }),
         tbar: [
             {
-                text: '<i class="icon-user btn-gc"></i> ' + __('Privileges'),
+                text: '<i class="fa fa-user"></i> ' + __('Privileges'),
                 id: 'privileges-btn',
                 handler: onPrivileges,
                 disabled: true
 
             },
             {
-                text: '<i class="icon-user btn-gc"></i> ' + __('Workflow'),
+                text: '<i class="fa fa-users"></i> ' + __('Workflow'),
                 id: 'workflow-btn',
                 handler: onWorkflow,
                 disabled: true,
                 hidden: !enableWorkflow
             },
             {
-                text: '<i class="icon-camera btn-gc"></i> ' + __('CartoMobile'),
-                handler: onEditCartomobile,
-                id: 'cartomobile-btn',
-                disabled: true
-            },
-            {
-                text: '<i class="icon-cog btn-gc"></i> ' + __('Advanced'),
+                text: '<i class="fa fa-cogs"></i> ' + __('Advanced'),
                 handler: onEditMoreSettings,
                 id: 'advanced-btn',
                 disabled: true
             },
             {
-                text: '<i class="icon-lock btn-gc"></i> ' + __('Services'),
+                text: '<i class="fa fa-lock"></i> ' + __('Services'),
                 handler: onGlobalSettings
 
             },
             {
-                text: '<i class="icon-remove btn-gc"></i> ' + __('Clear tile cache'),
+                text: '<i class="fa fa-remove"></i> ' + __('Clear tile cache'),
                 disabled: (subUser === schema || subUser === false) ? false : true,
                 handler: function () {
                     Ext.MessageBox.confirm(__('Confirm'), __('You are about to delete the tile cache for the whole schema. Are you sure?'), function (btn) {
@@ -436,7 +430,7 @@ $(window).ready(function () {
             },
             '->',
             {
-                text: '<i class="icon-plus btn-gc"></i> ' + __('New layer'),
+                text: '<i class="fa fa-cloud-upload"></i> ' + __('New layer'),
                 disabled: (subUser === schema || subUser === false) ? false : true,
                 handler: function () {
                     onAdd();
@@ -444,7 +438,7 @@ $(window).ready(function () {
             },
             '-',
             {
-                text: '<i class="icon-arrow-right btn-gc"></i> ' + __('Move layers'),
+                text: '<i class="fa fa-arrow-right"></i> ' + __('Move layers'),
                 disabled: true,
                 id: 'movelayer-btn',
                 handler: function () {
@@ -453,7 +447,7 @@ $(window).ready(function () {
             },
             '-',
             {
-                text: '<i class="icon-retweet btn-gc"></i> ' + __('Rename layer'),
+                text: '<i class="fa fa-pencil"></i> ' + __('Rename layer'),
                 disabled: true,
                 id: 'renamelayer-btn',
                 handler: function () {
@@ -462,7 +456,7 @@ $(window).ready(function () {
             },
             '-',
             {
-                text: '<i class="icon-trash btn-gc"></i> ' + __('Delete layers'),
+                text: '<i class="fa fa-cut"></i> ' + __('Delete layers'),
                 disabled: true,
                 id: 'deletelayer-btn',
                 handler: function () {
@@ -471,7 +465,7 @@ $(window).ready(function () {
             },
             '-',
             {
-                text: __('Copy properties'),
+                text: '<i class="fa fa-copy"></i> ' + __('Copy properties'),
                 id: 'copy-properties-btn',
                 tooltip: __("Copy all properties from another layer"),
                 disabled: true,
@@ -495,6 +489,7 @@ $(window).ready(function () {
                                 defaults: {
                                     border: false
                                 },
+                                border: false,
                                 items: [
                                     {
                                         xtype: "form",
@@ -624,7 +619,7 @@ $(window).ready(function () {
 
             '-',
             {
-                text: '<i class="icon-th btn-gc"></i> ' + __('Schema'),
+                text: '<i class="fa fa-th"></i> ' + __('Schema'),
                 disabled: subUser ? true : false,
                 menu: new Ext.menu.Menu({
                     items: [
@@ -672,7 +667,7 @@ $(window).ready(function () {
                 ]
             },
             {
-                text: '<i class="icon-plus btn-gc"></i>',
+                text: '<i class="fa fa-plus"></i>',
                 tooltip: __('New schema'),
                 disabled: subUser ? true : false,
                 handler: function () {
@@ -733,6 +728,7 @@ $(window).ready(function () {
                         border: false
                     },
                     layout: 'hbox',
+                    border: false,
                     items: [
                         {
                             xtype: "form",
@@ -742,6 +738,7 @@ $(window).ready(function () {
                             items: [
                                 {
                                     xtype: 'container',
+                                    border: false,
                                     items: [
                                         {
                                             xtype: "textfield",
@@ -1003,6 +1000,7 @@ $(window).ready(function () {
                         border: false
                     },
                     layout: 'hbox',
+                    border: false,
                     items: [
                         {
                             xtype: "form",
@@ -1012,6 +1010,7 @@ $(window).ready(function () {
                             items: [
                                 {
                                     xtype: 'container',
+                                    border: false,
                                     items: [
                                         {
                                             xtype: "combo",
@@ -1031,6 +1030,7 @@ $(window).ready(function () {
                         {
                             layout: 'form',
                             bodyStyle: 'padding: 10px',
+                            border: false,
                             items: [
                                 {
                                     xtype: 'button',
@@ -1111,6 +1111,7 @@ $(window).ready(function () {
                         border: false
                     },
                     layout: 'hbox',
+                    border: false,
                     items: [
                         {
                             xtype: "form",
@@ -1291,7 +1292,8 @@ $(window).ready(function () {
             '</table>'
         ];
         var activeTab = Ext.getCmp("layerStyleTabs").getActiveTab();
-        Ext.getCmp("layerStyleTabs").activate(2);
+
+        Ext.getCmp("layerStyleTabs").activate(3);
 
         Ext.getCmp("layerStyleTabs").activate(1);
         var template = new Ext.Template(markup);
@@ -1307,6 +1309,15 @@ $(window).ready(function () {
         a4.add(wmsLayer.sqlForm);
         a1.doLayout();
         a4.doLayout();
+
+        Ext.getCmp("layerStyleTabs").activate(2);
+        var a12 = Ext.getCmp("a12");
+        a12.remove(tileLayer.grid);
+        tileLayer.grid = null;
+        tileLayer.init(record);
+        a12.add(tileLayer.grid);
+        a12.doLayout();
+
 
         Ext.getCmp("layerStyleTabs").activate(0);
         var a2 = Ext.getCmp("a2");
@@ -1917,7 +1928,7 @@ $(window).ready(function () {
                                                     height: 200,
                                                     region: 'center',
                                                     frame: false,
-                                                    border: true,
+                                                    border: false,
                                                     sm: new Ext.grid.RowSelectionModel({
                                                         singleSelect: true
                                                     }),
@@ -2115,7 +2126,7 @@ $(window).ready(function () {
     '</table>'];
     var bookTpl = new Ext.Template(bookTplMarkup);
     var ct = new Ext.Panel({
-        title: __('Database'),
+        title: '<i class="fa fa-database"></i> ' + __('Database'),
         frame: false,
         layout: 'border',
         region: 'center',
@@ -2162,178 +2173,177 @@ $(window).ready(function () {
                                 Ext.getCmp("datapanel").removeAll();
                                 return false;
                             }
-                                var r = grid.getSelectionModel().getSelected(),
-                                    tableName = r.data.f_table_schema + "." + r.data.f_table_name,
-                                    dataPanel = Ext.getCmp("datapanel");
-                                try {
-                                    dataPanel.remove(dataGrid);
-                                } catch (ex) {
-                                }
-                                $.ajax({
-                                    url: '/controllers/table/columns/' + tableName + '?i=1',
-                                    async: true,
-                                    dataType: 'json',
-                                    type: 'GET',
-                                    success: function (response, textStatus, http) {
-                                        var validProperties = true,
-                                            fieldsForStore = response.forStore,
-                                            columnsForGrid = response.forGrid;
+                            var r = grid.getSelectionModel().getSelected(),
+                                tableName = r.data.f_table_schema + "." + r.data.f_table_name,
+                                dataPanel = Ext.getCmp("datapanel");
+                            try {
+                                dataPanel.remove(dataGrid);
+                            } catch (ex) {
+                            }
+                            $.ajax({
+                                url: '/controllers/table/columns/' + tableName + '?i=1',
+                                async: true,
+                                dataType: 'json',
+                                type: 'GET',
+                                success: function (response, textStatus, http) {
+                                    var validProperties = true,
+                                        fieldsForStore = response.forStore,
+                                        columnsForGrid = response.forGrid;
 
-                                        // We add an editor to the fields
-                                        for (var i in columnsForGrid) {
-                                            if (columnsForGrid[i].typeObj !== undefined) {
-                                                if (columnsForGrid[i].properties) {
-                                                    try {
-                                                        var json = Ext.decode(columnsForGrid[i].properties);
-                                                        columnsForGrid[i].editor = new Ext.form.ComboBox({
-                                                            store: Ext.decode(columnsForGrid[i].properties),
-                                                            editable: true,
-                                                            triggerAction: 'all'
-                                                        });
-                                                        validProperties = false;
-                                                    }
-                                                    catch (e) {
-                                                        alert('There is invalid properties on field ' + columnsForGrid[i].dataIndex);
-                                                    }
-                                                } else if (columnsForGrid[i].typeObj.type === "int") {
-                                                    columnsForGrid[i].editor = new Ext.form.NumberField({
-                                                        decimalPrecision: 0,
-                                                        decimalSeparator: '¤'// Some strange char nobody is using
+                                    // We add an editor to the fields
+                                    for (var i in columnsForGrid) {
+                                        if (columnsForGrid[i].typeObj !== undefined) {
+                                            if (columnsForGrid[i].properties) {
+                                                try {
+                                                    var json = Ext.decode(columnsForGrid[i].properties);
+                                                    columnsForGrid[i].editor = new Ext.form.ComboBox({
+                                                        store: Ext.decode(columnsForGrid[i].properties),
+                                                        editable: true,
+                                                        triggerAction: 'all'
                                                     });
-                                                } else if (columnsForGrid[i].typeObj.type === "decimal") {
-                                                    columnsForGrid[i].editor = new Ext.form.NumberField({
-                                                        decimalPrecision: columnsForGrid[i].typeObj.scale,
-                                                        decimalSeparator: '.'
-                                                    });
-                                                } else if (columnsForGrid[i].typeObj.type === "string") {
-                                                    columnsForGrid[i].editor = new Ext.form.TextField();
-                                                } else if (columnsForGrid[i].typeObj.type === "text") {
-                                                    columnsForGrid[i].editor = new Ext.form.TextArea();
+                                                    validProperties = false;
                                                 }
+                                                catch (e) {
+                                                    alert('There is invalid properties on field ' + columnsForGrid[i].dataIndex);
+                                                }
+                                            } else if (columnsForGrid[i].typeObj.type === "int") {
+                                                columnsForGrid[i].editor = new Ext.form.NumberField({
+                                                    decimalPrecision: 0,
+                                                    decimalSeparator: '¤'// Some strange char nobody is using
+                                                });
+                                            } else if (columnsForGrid[i].typeObj.type === "decimal") {
+                                                columnsForGrid[i].editor = new Ext.form.NumberField({
+                                                    decimalPrecision: columnsForGrid[i].typeObj.scale,
+                                                    decimalSeparator: '.'
+                                                });
+                                            } else if (columnsForGrid[i].typeObj.type === "string") {
+                                                columnsForGrid[i].editor = new Ext.form.TextField();
+                                            } else if (columnsForGrid[i].typeObj.type === "text") {
+                                                columnsForGrid[i].editor = new Ext.form.TextArea();
                                             }
                                         }
-                                        var proxy = new Ext.data.HttpProxy({
-                                            restful: true,
-                                            type: 'json',
-                                            api: {
-                                                read: '/controllers/table/data/' + tableName + '/' + r.data._key_,
-                                                create: '/controllers/table/data/' + tableName + '/' + r.data._key_,
-                                                update: '/controllers/table/data/' + tableName + '/' + r.data.pkey + '/' + r.data._key_,
-                                                destroy: '/controllers/table/data/' + tableName + '/' + r.data.pkey + '/' + r.data._key_
+                                    }
+                                    var proxy = new Ext.data.HttpProxy({
+                                        restful: true,
+                                        type: 'json',
+                                        api: {
+                                            read: '/controllers/table/data/' + tableName + '/' + r.data._key_,
+                                            create: '/controllers/table/data/' + tableName + '/' + r.data._key_,
+                                            update: '/controllers/table/data/' + tableName + '/' + r.data.pkey + '/' + r.data._key_,
+                                            destroy: '/controllers/table/data/' + tableName + '/' + r.data.pkey + '/' + r.data._key_
+                                        },
+                                        listeners: {
+                                            write: function (store, action, result, transaction, rs) {
+                                                if (transaction.success) {
+                                                    //
+                                                }
                                             },
-                                            listeners: {
-                                                write: function (store, action, result, transaction, rs) {
-                                                    if (transaction.success) {
-                                                        //
-                                                    }
-                                                },
-                                                beforewrite: function(){
+                                            beforewrite: function () {
+                                                if (r.data.hasPkey === false) {
+                                                    App.setAlert(App.STATUS_NOTICE, __("You can't edit a relation without a primary key"));
+                                                    dataStore.reload();
+                                                    return false;
+                                                }
+                                            },
+                                            exception: function (proxy, type, action, options, response, arg) {
+                                                if (action === "create") { // HACK exception is thrown with successful create
+                                                    dataStore.reload();
+                                                } else {
+                                                    Ext.MessageBox.show({
+                                                        title: __('Failure'),
+                                                        msg: __(Ext.decode(response.responseText).message),
+                                                        buttons: Ext.MessageBox.OK,
+                                                        width: 300,
+                                                        height: 300
+                                                    });
+                                                }
+
+                                            }
+                                        }
+                                    });
+                                    dataStore = new Ext.data.Store({
+                                        writer: new Ext.data.JsonWriter({
+                                            writeAllFields: false,
+                                            encode: false
+                                        }),
+                                        reader: new Ext.data.JsonReader({
+                                            successProperty: 'success',
+                                            idProperty: r.data.pkey,
+                                            root: 'data',
+                                            messageProperty: 'message'
+                                        }, fieldsForStore),
+                                        proxy: proxy,
+                                        autoSave: true
+                                    });
+                                    dataGrid = new Ext.grid.EditorGridPanel({
+                                        id: "datagridpanel",
+                                        disabled: false,
+                                        viewConfig: {
+                                            //forceFit: true
+                                        },
+                                        border: false,
+                                        store: dataStore,
+                                        listeners: {},
+                                        sm: new Ext.grid.RowSelectionModel({
+                                            singleSelect: false
+                                        }),
+                                        cm: new Ext.grid.ColumnModel({
+                                            defaults: {
+                                                sortable: true,
+                                                editor: {
+                                                    xtype: "textfield"
+                                                }
+                                            },
+                                            columns: columnsForGrid
+                                        }),
+                                        tbar: [
+                                            {
+                                                text: '<i class="fa fa-plus"></i> ' + __('Add record'),
+                                                handler: function () {
+                                                    // access the Record constructor through the grid's store
+                                                    var rec = dataGrid.getStore().recordType;
+                                                    var p = new rec({});
+                                                    dataGrid.stopEditing();
+                                                    dataStore.insert(0, p);
+                                                }
+                                            }, {
+                                                text: '<i class="fa fa-cut"></i> ' + __('Delete records'),
+                                                handler: function () {
+                                                    var r = grid.getSelectionModel().getSelected();
                                                     if (r.data.hasPkey === false) {
                                                         App.setAlert(App.STATUS_NOTICE, __("You can't edit a relation without a primary key"));
-                                                        dataStore.reload();
                                                         return false;
                                                     }
-                                                },
-                                                exception: function (proxy, type, action, options, response, arg) {
-                                                    if (action === "create") { // HACK exception is thrown with successful create
-                                                        dataStore.reload();
-                                                    } else {
-                                                        Ext.MessageBox.show({
-                                                            title: __('Failure'),
-                                                            msg: __(Ext.decode(response.responseText).message),
-                                                            buttons: Ext.MessageBox.OK,
-                                                            width: 300,
-                                                            height: 300
-                                                        });
+                                                    var records = dataGrid.getSelectionModel().getSelections();
+                                                    if (records.length === 0) {
+                                                        App.setAlert(App.STATUS_NOTICE, __("You've to select one or more records"));
+                                                        return false;
                                                     }
-
+                                                    Ext.MessageBox.confirm(__('Confirm'), __('Are you sure you want to delete') + ' ' + records.length + ' ' + __('records(s)') + '?', function (btn) {
+                                                        if (btn === "yes") {
+                                                            Ext.each(dataGrid.getSelectionModel().getSelections(), function (i) {
+                                                                dataStore.remove(i);
+                                                            })
+                                                        } else {
+                                                            return false;
+                                                        }
+                                                    });
                                                 }
                                             }
-                                        });
-                                        dataStore = new Ext.data.Store({
-                                            writer: new Ext.data.JsonWriter({
-                                                writeAllFields: false,
-                                                encode: false
-                                            }),
-                                            reader: new Ext.data.JsonReader({
-                                                successProperty: 'success',
-                                                idProperty: r.data.pkey,
-                                                root: 'data',
-                                                messageProperty: 'message'
-                                            }, fieldsForStore),
-                                            proxy: proxy,
-                                            autoSave: true
-                                        });
-                                        dataGrid = new Ext.grid.EditorGridPanel({
-                                            id: "datagridpanel",
-                                            disabled: false,
-                                            viewConfig: {
-                                                //forceFit: true
-                                            },
+                                        ],
+                                        bbar: new Ext.PagingToolbar({
+                                            pageSize: 100,
                                             store: dataStore,
-                                            listeners: {},
-                                            sm: new Ext.grid.RowSelectionModel({
-                                                singleSelect: false
-                                            }),
-                                            cm: new Ext.grid.ColumnModel({
-                                                defaults: {
-                                                    sortable: true,
-                                                    editor: {
-                                                        xtype: "textfield"
-                                                    }
-                                                },
-                                                columns: columnsForGrid
-                                            }),
-                                            tbar: [
-                                                {
-                                                    text: '<i class="icon-plus btn-gc"></i> ' + __('Add record'),
-                                                    handler: function () {
-                                                        // access the Record constructor through the grid's store
-                                                        var rec = dataGrid.getStore().recordType;
-                                                        var p = new rec({});
-                                                        dataGrid.stopEditing();
-                                                        dataStore.insert(0, p);
-                                                    }
-                                                }, {
-                                                    text: '<i class="icon-trash btn-gc"></i> ' + __('Delete records'),
-                                                    handler: function () {
-                                                        var r = grid.getSelectionModel().getSelected();
-                                                        if (r.data.hasPkey === false) {
-                                                            App.setAlert(App.STATUS_NOTICE, __("You can't edit a relation without a primary key"));
-                                                            return false;
-                                                        }
-                                                        var records = dataGrid.getSelectionModel().getSelections();
-                                                        if (records.length === 0) {
-                                                            App.setAlert(App.STATUS_NOTICE, __("You've to select one or more records"));
-                                                            return false;
-                                                        }
-                                                        Ext.MessageBox.confirm(__('Confirm'), __('Are you sure you want to delete') + ' ' + records.length + ' ' + __('records(s)') + '?', function (btn) {
-                                                            if (btn === "yes") {
-                                                                Ext.each(dataGrid.getSelectionModel().getSelections(), function(i){
-                                                                    dataStore.remove(i);
-                                                                })
-                                                            } else {
-                                                                return false;
-                                                            }
-                                                        });
-                                                    }
-                                                }
-                                            ],
-                                            bbar: [
-
-                                                new Ext.PagingToolbar({
-                                                    pageSize: 100,
-                                                    store: dataStore,
-                                                    displayInfo: true,
-                                                    displayMsg: 'Features {0} - {1} of {2}',
-                                                    emptyMsg: "No features"
-                                                })]
-                                        });
-                                        dataPanel.add(dataGrid);
-                                        dataPanel.doLayout();
-                                        dataStore.load();
-                                    }
-                                });
+                                            displayInfo: true,
+                                            displayMsg: 'Features {0} - {1} of {2}',
+                                            emptyMsg: __("No features")
+                                        })
+                                    });
+                                    dataPanel.add(dataGrid);
+                                    dataPanel.doLayout();
+                                    dataStore.load();
+                                }
+                            });
 
 
                         }
@@ -2347,7 +2357,7 @@ $(window).ready(function () {
                     id: 'espanel',
                     listeners: {
                         activate: function (e) {
-                            if (grid.getSelectionModel().getSelections().length >1  ) {
+                            if (grid.getSelectionModel().getSelections().length > 1) {
                                 Ext.getCmp("espanel").removeAll();
                                 return false;
                             }
@@ -2373,7 +2383,6 @@ $(window).ready(function () {
     grid.getSelectionModel().on('rowselect', function (sm, rowIdx, r) {
         var records = sm.getSelections();
         if (records.length === 1) {
-            Ext.getCmp('cartomobile-btn').setDisabled(false);
             Ext.getCmp('advanced-btn').setDisabled(false);
             if (subUser === false || subUser === schema) {
                 Ext.getCmp('privileges-btn').setDisabled(false);
@@ -2383,7 +2392,6 @@ $(window).ready(function () {
             }
         }
         else {
-            Ext.getCmp('cartomobile-btn').setDisabled(true);
             Ext.getCmp('advanced-btn').setDisabled(true);
             Ext.getCmp('privileges-btn').setDisabled(true);
             Ext.getCmp('workflow-btn').setDisabled(true);
@@ -2400,7 +2408,6 @@ $(window).ready(function () {
     });
 
     resetButtons = function () {
-        Ext.getCmp('cartomobile-btn').setDisabled(true);
         Ext.getCmp('advanced-btn').setDisabled(true);
         Ext.getCmp('privileges-btn').setDisabled(true);
         Ext.getCmp('workflow-btn').setDisabled(true);
@@ -2419,7 +2426,7 @@ $(window).ready(function () {
         items: [
             {
                 xtype: "panel",
-                title: __('Map'),
+                title: '<i class="fa fa-map"></i> ' + __('Map'),
                 layout: 'border',
                 items: [
                     {
@@ -2479,7 +2486,7 @@ $(window).ready(function () {
                                                 },
                                                 tbar: [
                                                     {
-                                                        text: '<i class="icon-ok btn-gc"></i> ' + __('Update'),
+                                                        text: '<i class="fa fa-check"></i> ' + __('Update'),
                                                         handler: function () {
                                                             var grid = Ext.getCmp("propGrid");
                                                             var grid2 = Ext.getCmp("propGrid2");
@@ -2495,9 +2502,6 @@ $(window).ready(function () {
                                                                 data: source
                                                             };
                                                             param = Ext.util.JSON.encode(param);
-
-                                                            // Encode the json because it can contain "="
-                                                            //param = encodeURIComponent(param);
 
                                                             Ext.Ajax.request({
                                                                 url: '/controllers/classification/index/' + wmsClasses.table + '/' + wmsClass.classId,
@@ -2590,6 +2594,22 @@ $(window).ready(function () {
                                     },
                                     {
                                         xtype: "panel",
+                                        title: __('Tile cache'),
+                                        height: 700,
+                                        defaults: {
+                                            border: false
+                                        },
+                                        border: false,
+                                        items: [
+                                            {
+                                                xtype: "panel",
+                                                id: "a12",
+                                                layout: "fit"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        xtype: "panel",
                                         title: 'Legend',
                                         autoHeight: true,
                                         defaults: {
@@ -2613,7 +2633,7 @@ $(window).ready(function () {
             ct,
             {
                 xtype: "panel",
-                title: __('Workflow'),
+                title: '<i class="fa fa-users"></i> ' + __('Workflow'),
                 layout: 'border',
                 id: "workflowPanel",
                 listeners: {
@@ -2729,7 +2749,7 @@ $(window).ready(function () {
                         }),
                         tbar: [
                             {
-                                text: '<i class="icon-refresh btn-gc"></i> ' + __('Reload'),
+                                text: '<i class="fa fa-refresh"></i> ' + __('Reload'),
                                 tooltip: __("Reload the list"),
                                 handler: function () {
                                     if (Ext.getCmp('workflowShowAllBtn').pressed) {
@@ -2740,7 +2760,7 @@ $(window).ready(function () {
                                 }
                             },
                             {
-                                text: '<i class="icon-tasks btn-gc"></i> ' + __('Show all'),
+                                text: '<i class="fa fa-list"></i> ' + __('Show all'),
                                 enableToggle: true,
                                 id: "workflowShowAllBtn",
                                 disabled: (subUser === false) ? true : false,
@@ -2754,7 +2774,7 @@ $(window).ready(function () {
                                 }
                             },
                             {
-                                text: '<i class="icon-pencil btn-gc"></i> ' + __('See/edit feature'),
+                                text: '<i class="fa fa-edit"></i> ' + __('See/edit feature'),
                                 tooltip: __("Switch to Map view with the feature loaded."),
                                 handler: function () {
                                     var records = Ext.getCmp("workflowGrid").getSelectionModel().getSelections();
@@ -2796,7 +2816,7 @@ $(window).ready(function () {
                                 }
                             },
                             {
-                                text: '<i class="icon-ok btn-gc"></i> ' + __('Check feafure'),
+                                text: '<i class="fa fa-check"></i> ' + __('Check feature'),
                                 tooltip: __("This will update the feature with your role in the workflow."),
                                 handler: function () {
                                     var records = Ext.getCmp("workflowGrid").getSelectionModel().getSelections();
@@ -2845,7 +2865,7 @@ $(window).ready(function () {
             },
             {
                 xtype: "panel",
-                title: __('Scheduler'),
+                title: '<i class="fa fa-clock-o"></i> ' + __('Scheduler'),
                 layout: 'border',
                 id: "schedulerPanel",
                 items: [
@@ -2859,7 +2879,7 @@ $(window).ready(function () {
             },
             {
                 xtype: "panel",
-                title: __('Log'),
+                title: '<i class="fa fa-list"></i> ' + __('Log'),
                 layout: 'border',
                 border: false,
                 listeners: {
@@ -2936,6 +2956,11 @@ $(window).ready(function () {
          success: function (response) {
          }
          });*/
+        $.ajax({
+            url: '/controllers/mapcachefile',
+            success: function (response) {
+            }
+        });
     };
     clearTileCache = function (layer, map) {
         var key = layer.split(".")[0] + "." + layer.split(".")[1];

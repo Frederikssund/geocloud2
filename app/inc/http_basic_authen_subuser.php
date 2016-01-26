@@ -31,6 +31,7 @@ if (!function_exists("makeExceptionReport")) {
 if (sizeof($dbSplit) == 2 || $_SESSION["subuser"]) { //Sub-user
     $db = $dbSplit[1];
     // We set the SESSION, if request is coming from outside a session
+
     if (!$_SESSION["subuser"]) {
         $subUser = $_SESSION["subuser"] = $dbSplit[0];
     } else {
@@ -55,6 +56,7 @@ if (sizeof($dbSplit) == 2 || $_SESSION["subuser"]) { //Sub-user
         }
         while ($row = $postgisObject->fetchRow($res, "assoc")) {
             $privileges = (array)json_decode($row["privileges"]);
+            //die(print_r($privileges,true));
             switch ($transaction) {
                 case false:
                     if ($privileges[$userGroup ?: $subUser] == false || $privileges[$userGroup ?: $subUser] == "none") {

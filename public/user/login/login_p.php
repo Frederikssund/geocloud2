@@ -244,7 +244,7 @@ while ($rowSubUSers = $postgisObject->fetchRow($res)) {
                                     template = $('#widgetTemplate'),
                                     host = '/controllers/logstash';
 
-                                $('#widget1').logstashWidget(host, template, 'Tile downloads', db + ' ' + schema + '.*' + ' tilecache');
+                                $('#widget1').logstashWidget(host, template, 'Tile downloads', db + ' ' + schema + '.*' + ' mapcache');
                                 $('#widget2').logstashWidget(host, template, 'Elasticsearch queries', db + ' ' + schema + ' api elasticsearch');
                                 $('#widget3').logstashWidget(host, template, 'OWS request', db + ' ' + schema + ' ows');
                                 $('#logstash-modal').modal();
@@ -289,6 +289,21 @@ while ($rowSubUSers = $postgisObject->fetchRow($res)) {
                         url: hostName + '/controllers/cfgfile',
                         success: function (response) {
 
+                        }
+                    });
+                    $.ajax({
+                        dataType: 'jsonp',
+                        jsonp: 'jsonp_callback',
+                        url: hostName + '/controllers/mapcachefile',
+                        success: function (response) {
+                            $.ajax({
+                                dataType: 'jsonp',
+                                jsonp: 'jsonp_callback',
+                                url: hostName + '/controllers/mapcache/add/' + db ,
+                                success: function (response) {
+
+                                }
+                            });
                         }
                     });
                 }

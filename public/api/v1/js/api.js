@@ -564,7 +564,7 @@ var mygeocloud_ol = (function () {
             if (!defaults.tileCached) {
                 url = host + "/wms/" + defaults.db + "/" + parts[0] + "?";
             } else {
-                url = host + "/wms/" + defaults.db + "/tilecache?";
+                url = host + "/mapcache/" + defaults.db + "/wms?";
             }
             var l = new OpenLayers.Layer.WMS(defaults.name, url, {
                 layers: layer,

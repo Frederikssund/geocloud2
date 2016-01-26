@@ -57,23 +57,13 @@ wmsLayer.init = function (record) {
                 name: 'cluster'
             },
             {
-                name: 'meta_tiles',
-                type: 'boolean'
-            },
-            {
-                name: 'meta_size'
-            },
-            {
-                name: 'meta_buffer'
-            },
-            {
-                name: 'ttl'
-            },
-            {
                 name: 'maxscaledenom'
             },
             {
                 name: 'minscaledenom'
+            },
+            {
+                name: 'symbolscaledenom'
             },
             {
                 name: 'geotype'
@@ -136,15 +126,12 @@ wmsLayer.init = function (record) {
             label_column: __('Label item'),
             theme_column: 'Class item',
             opacity: 'Opacity',
-            label_max_scale: 'Label max scale',
-            label_min_scale: 'Label min scale',
+            label_max_scale: 'Label min scale', //LABELMAXSCALEDENOM
+            label_min_scale: 'Label max scale', //LABELMINSCALEDENOM
             cluster: 'Clustering distance',
-            meta_tiles: 'Use meta tiles' + __('Meta tiles fights cut of symboles and labels in tiles. Is slower on creation.', true),
-            meta_size: 'Meta tile size',
-            meta_buffer: 'Meta buffer size (px)',
-            ttl: 'Time to live (TTL)' + __('Time to live in the CDN cache.', true),
-            maxscaledenom: 'Max scale',
-            minscaledenom: 'Min scale',
+            maxscaledenom: __('Min scale') + __('Minimum scale at which this layer is labeled. Scale is given as the denominator of the actual scale fraction, for example for a map at a scale of 1:24,000 use 24000.', true),
+            minscaledenom: __('Max scale') + __('Maximum scale at which this layer is labeled. Scale is given as the denominator of the actual scale fraction, for example for a map at a scale of 1:24,000 use 24000.', true),
+            symbolscaledenom: 'Symbole scale' + __("The scale at which symbols and/or text appear full size. This allows for dynamic scaling of objects based on the scale of the map. If not set then this layer will always appear at the same size. Scale is given as the denominator of the actual scale fraction, for example for a map at a scale of 1:24,000 use 24000.", true),
             geotype: 'Geom type',
             offsite: 'Offsite'
         },
@@ -208,22 +195,21 @@ wmsLayer.init = function (record) {
         },
         tbar: [
             {
-                text: '<i class="icon-ok btn-gc"></i> ' + __('Update'),
+                text: '<i class="fa fa-check"></i> ' + __('Update'),
                 //iconCls : 'silk-accept',
                 handler: function () {
                     var grid = Ext.getCmp("propGridLayer");
                     var id = Ext.getCmp("configStore");
                     var source = grid.getSource();
-                    var jsonDataStr = null;
-                    jsonDataStr = Ext.encode(source);
-
+                    var param = {
+                        data: source
+                    };
+                    param = Ext.util.JSON.encode(param);
 
                     Ext.Ajax.request({
                         url: '/controllers/tile/index/' + wmsLayer.classId,
                         method: 'put',
-                        params: {
-                            data: jsonDataStr
-                        },
+                        params: param,
                         headers: {
                             'Content-Type': 'application/json; charset=utf-8'
                         },
@@ -277,7 +263,7 @@ wmsLayer.init = function (record) {
         ],
         buttons: [
             {
-                text: '<i class="icon-ok btn-gc"></i> ' + __('Update SQL'),
+                text: '<i class="fa fa-check"></i> ' + __('Update SQL'),
                 handler: function () {
                     var f = Ext.getCmp('sqlForm');
                     if (f.form.isValid()) {

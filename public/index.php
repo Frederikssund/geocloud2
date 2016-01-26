@@ -28,17 +28,16 @@ if (isset(App::$param["AccessControlAllowOrigin"]) && in_array($http_origin, App
     header("Access-Control-Allow-Credentials: true");
 }
 
-
 // Start routing
 if (Input::getPath()->part(1) == "api") {
     Database::setDb(Input::getPath()->part(4)); // Default
     Route::add("api/v1/sql", function () {
+        Session::start();
         $db = Input::getPath()->part(4);
         $dbSplit = explode("@", $db);
         if (sizeof($dbSplit) == 2) {
             $db = $dbSplit[1];
-            Session::start();
-            $_SESSION['subuser'] = $dbSplit[0];
+            //$_SESSION['subuser'] = $dbSplit[0];
         }
         Database::setDb($db);
     });
@@ -94,10 +93,12 @@ if (Input::getPath()->part(1) == "api") {
     Route::add("controllers/layer/");
     Route::add("controllers/mapfile");
     Route::add("controllers/tinyowsfile");
+    Route::add("controllers/mapcachefile");
     Route::add("controllers/setting");
     Route::add("controllers/table/");
     Route::add("controllers/tile/");
     Route::add("controllers/tilecache/");
+    Route::add("controllers/mapcache/");
     Route::add("controllers/session/");
     Route::add("controllers/osm/");
     Route::add("controllers/upload/vector");
@@ -115,9 +116,22 @@ if (Input::getPath()->part(1) == "api") {
 } elseif (Input::getPath()->part(1) == "wms" || Input::getPath()->part(1) == "ows") {
     Session::start();
     new \app\controllers\Wms();
-} elseif (Input::getPath()->part(1) == "wmsc") {
+
+} elseif (Input::getPath()->part(1) == "tilecache") {
     Session::start();
-    new \app\controllers\Wmsc();
+    $tileCache = new \app\controllers\Tilecache();
+    $tileCache->fetch();
+
+} elseif (Input::getPath()->part(1) == "mapcache") {
+    // Use TileCache instead if there is no MapCache settings
+    Session::start();
+    if (isset(App::$param["mapCache"])) {
+        $cache = new \app\controllers\Mapcache();
+    } else {
+        $cache = new \app\controllers\Tilecache();
+    }
+    $cache->fetch();
+
 } elseif (Input::getPath()->part(1) == "wfs") {
     Session::start();
     $db = Input::getPath()->part(2);
@@ -133,6 +147,7 @@ if (Input::getPath()->part(1) == "api") {
     Database::setDb($db);
     Connection::$param["postgisschema"] = Input::getPath()->part(3);
     include_once("app/wfs/server.php");
+
 } elseif (!Input::getPath()->part(1)) {
     if (App::$param["redirectTo"]) {
         \app\inc\Redirect::to(App::$param["redirectTo"]);

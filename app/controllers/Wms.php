@@ -2,6 +2,7 @@
 namespace app\controllers;
 
 use \app\conf\App;
+use \app\inc\Util;
 
 class Wms extends \app\inc\Controller
 {
@@ -16,7 +17,10 @@ class Wms extends \app\inc\Controller
         $db = \app\inc\Input::getPath()->part(2);
         $dbSplit = explode("@", $db);
         if (sizeof($dbSplit) == 2) {
+            $subUser = $dbSplit[0];
             $db = $dbSplit[1];
+        } else {
+            $subUser = null;
         }
         $path = App::$param['path'] . "/app/wms/mapfiles/";
         $name = $db . "_" . $postgisschema . ".map";
@@ -34,18 +38,16 @@ class Wms extends \app\inc\Controller
             $request->loadParams();
         }
 
-        if ($_SESSION['http_auth'] != $db) {
-            \app\models\Database::setDb($db);
-            $postgisObject = new \app\inc\Model();
-            foreach(explode(",",$layers) as $layer) {
-                $auth = $postgisObject->getGeometryColumns($layer, "authentication");
-                $layerSplit = explode(".", $layer);
-                $HTTP_FORM_VARS["TYPENAME"] = $layerSplit[1];
-                if ($auth == "Read/write") {
-                    include('inc/http_basic_authen.php');
-                } else {
-                    include('inc/http_basic_authen_subuser.php');
-                }
+        $trusted = false;
+        foreach (App::$param["trustedAddresses"] as $address) {
+            if (Util::ipInRange(Util::clientIp(), $address)) {
+                $trusted = true;
+                break;
+            }
+        }
+        if (!$trusted) {
+            foreach (explode(",", $layers) as $layer) {
+                $this->basicHttpAuthLayer($layer, $db, $subUser);
             }
         }
 
@@ -57,12 +59,10 @@ class Wms extends \app\inc\Controller
         } else {
             header('Content-type: text/xml');
         }
-
         ms_iogetStdoutBufferBytes();
         print ("<!--\n");
         include("README");
         print ("\n-->\n");
         ms_ioresethandlers();
-
     }
 }

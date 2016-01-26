@@ -22,8 +22,8 @@
 }
 
 .x-box-item {
-    font-family: arial, tahoma, helvetica, sans-serif;
-    font-size: 11px;
+    font-family: 'Open Sans';
+    font-size: 10px;
     font-style: normal;
     font-variant: normal;
     font-weight: 400;
@@ -101,14 +101,82 @@ q:after, q:before {
 }
 
 .x-tree-node-collapsed .x-tree-node-icon, .x-tree-node-expanded .x-tree-node-icon {
-    background-image: url(/js/bootstrap/img/glyphicons-halflings.png) !important;
-    display: inline-block;
     width: 14px;
     height: 14px;
     line-height: 10px;
     vertical-align: text-top;
     background-repeat: no-repeat;
     margin-top: -1px
+}
+
+.x-tree-node-collapsed, .x-tree-node-expanded {
+    padding: 5px;
+}
+
+.x-tree-node-collapsed, .x-tree-node-expanded, .x-grid3-check-col-on, .x-grid3-check-col, .x-tool-collapse-west, .x-tool-collapse-east, .x-tool-collapse-south, .x-tool-expand-east, .x-tool-expand-west, .x-tool-expand-south, .x-window-dlg .ext-mb-question, .x-tool {
+    font: normal normal normal 14px/1 FontAwesome;
+    font-size: inherit;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.x-tool-close {
+    background: #ffffff !important;
+    color: #848482;
+}
+
+.x-tool-close-over {
+    background: red !important;
+    color: #ffffff;
+}
+
+.x-tool-close,.x-tool-close-over {
+    padding-left: 3px;
+    padding-top: 2px;
+    font-size: 11px;
+    box-sizing: border-box;
+
+}
+.x-tool-close:before,.x-tool-close-over:before {
+    content: "\f00d";
+}
+
+.x-window-dlg .ext-mb-question {
+    background: none !important;
+    color: #ffffff;
+    font-size: 34px;
+}
+
+.x-window-dlg .ext-mb-question:before {
+    content: "\f059";
+}
+
+.x-tree-node-collapsed:before {
+    content: "\f196";
+}
+
+.x-tree-node-expanded:before {
+    content: "\f147";
+}
+
+.x-grid3-check-col-on, .x-grid3-check-col {
+    background-image: none !important;
+    text-align: center;
+    line-height: 19px;
+
+}
+
+.x-grid3-check-col-on:before {
+    content: "\f046"
+}
+
+.x-grid3-check-col:before {
+    content: "\f096"
+}
+
+.x-tree-node-anchor span {
+    font: normal 11px 'Open Sans';
 }
 
 .x-tree-node-expanded .x-tree-node-icon {
@@ -119,15 +187,65 @@ q:after, q:before {
     background-position: -384px -120px
 }
 
+.x-tool-collapse-west, .x-tool-collapse-west-over, .x-tool-collapse-east, .x-tool-collapse-east-over,
+.x-tool-expand-west, .x-tool-expand-west-over, .x-tool-expand-east, .x-tool-expand-east-over,
+.x-tool-expand-south, .x-tool-expand-south-over, .x-tool-collapse-south, .x-tool-collapse-south-over {
+    text-align: center;
+    font-size: 15px;
+    line-height: 14px;
+    padding-left: 2px;
+}
+
+.x-tool-collapse-west, .x-tool-collapse-east,
+.x-tool-expand-west, .x-tool-expand-east,
+.x-tool-expand-south, .x-tool-collapse-south {
+    background-image: none;
+}
+
+.x-tool-collapse-west-over, .x-tool-collapse-east-over,
+.x-tool-expand-west-over, .x-tool-expand-east-over,
+.x-tool-expand-south-over, .x-tool-collapse-south-over {
+    back / ground-color : #2E75B3;
+    color: #848482;
+}
+
+.x-tool-collapse-west:before {
+    content: "\f100";
+
+}
+
+.x-tool-collapse-east:before {
+    content: "\f101";
+}
+
+.x-tool-collapse-south:before {
+    content: "\f103";
+}
+
+.x-tool-expand-west:before {
+    content: "\f101";
+}
+
+.x-tool-expand-east:before {
+    content: "\f100";
+}
+
+.x-tool-expand-south:before {
+    content: "\f102";
+}
+
 .x-tree-no-lines .x-tree-elbow-end-minus, .x-tree-no-lines .x-tree-elbow-end-plus, .x-tree-no-lines .x-tree-elbow-minus, .x-tree-no-lines .x-tree-elbow-plus {
-    background-image: url(/js/bootstrap/img/glyphicons-halflings.png) !important;
     display: inline-block;
-    width: 14px;
+    width: 2px;
     height: 14px;
     line-height: 10px;
     vertical-align: text-top;
     background-repeat: no-repeat;
     margin-top: -1px
+}
+
+.x-tree-elbow, .x-tree-elbow-end {
+    width: 0px !important;
 }
 
 .x-tree-no-lines .x-tree-elbow-end-plus, .x-tree-no-lines .x-tree-elbow-plus {
@@ -140,10 +258,6 @@ q:after, q:before {
 
 .x-tree-node-icon {
     display: none
-}
-
-.btn-gc {
-    margin-top: -1px !important
 }
 
 #upload a {
@@ -162,14 +276,14 @@ q:after, q:before {
 }
 
 #upload div {
-    left: 10px;
+    left: 11px;
     position: relative;
-    font-family: verdana, arial, sans-serif;
+    font-family: 'Open Sans';
     font-size: 7.5pt
 }
 
 .layer-desc {
-    font-family: verdana, arial, sans-serif;
+    font-family: 'Open Sans';
     font-size: 7.5pt;
     padding: 10px;
     color: #fff;
@@ -208,8 +322,8 @@ q:after, q:before {
 }
 
 .legend {
-    font-family: arial, tahoma, helvetica, sans-serif;;
-    font-size: 8pt;
+    font-family: 'Open Sans';
+    font-size: 12px;
 }
 
 .legend-container {
@@ -279,5 +393,10 @@ q:after, q:before {
 .plupload_scroll .plupload_filelist {
     height: 195px;
 }
+#gx-map-panel{
+    border-left: 1px solid  #B6B6B4/*Gray Cloud*/;;
+    border-right: 1px solid  #B6B6B4/*Gray Cloud*/;;
+}
+
 
 

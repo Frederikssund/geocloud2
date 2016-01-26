@@ -497,7 +497,7 @@ geocloud = (function () {
             url = defaults.host + "/wms/" + defaults.db + "/" + parts[0] + "?";
             urlArray = [url];
         } else {
-            url = defaults.host + "/wms/" + defaults.db + "/tilecache";
+            url = defaults.host + "/mapcache/" + defaults.db + "/wms";
             var url1 = url;
             var url2 = url;
             var url3 = url;
@@ -541,7 +541,8 @@ geocloud = (function () {
     //ol2 and leaflet
     createTMSLayer = function (layer, defaults) {
         var l, url, urlArray;
-        url = defaults.host + "/wms/" + defaults.db + "/tilecache/";
+        // TODO Setting for either TileCache or MapCache
+        url = defaults.host + "/mapcache/" + defaults.db + "/tms/";
         var url1 = url;
         var url2 = url;
         var url3 = url;
@@ -563,9 +564,10 @@ geocloud = (function () {
 
                 break;
             case "leaflet":
-                l = new L.TileLayer(url + "1.0.0/" + layer + "/{z}/{x}/{y}.png", {
+                l = new L.TileLayer(url + "1.0.0/" + layer + "" + "/{z}/{x}/{y}.png", {
                     tms: true,
-                    maxZoom: 20
+                    maxZoom: 20,
+                    tileSize: 256
                 });
                 l.id = layer;
                 break;
@@ -581,7 +583,9 @@ geocloud = (function () {
                 projection: "EPSG:900913",
                 fadeAnimation: true,
                 zoomAnimation: true,
-                showLayerSwitcher: false
+                showLayerSwitcher: false,
+                maxExtent: '-20037508.34, -20037508.34, 20037508.34, 20037508.34',
+                resolutions: resolutions
             };
         if (config) {
             for (prop in config) {
@@ -854,9 +858,8 @@ geocloud = (function () {
                     //theme: null,
                     controls: olControls,
                     numZoomLevels: defaults.numZoomLevels,
+                    resolutions: defaults.resolutions,
                     projection: defaults.projection,
-                    maxResolution: defaults.maxResolution,
-                    minResolution: defaults.minResolution,
                     maxExtent: defaults.maxExtent,
                     eventListeners: defaults.eventListeners
                 });
@@ -878,9 +881,9 @@ geocloud = (function () {
         var _map = this.map;
         this.addLayer = function (layer, name, baseLayer) {
             if (baseLayer) {
-            lControl.addBaseLayer(layer, name);
+                lControl.addBaseLayer(layer, name);
             } else {
-            lControl.addOverlay(layer, name);
+                lControl.addOverlay(layer, name);
             }
         }
         //ol2, ol3 and leaflet
@@ -1421,7 +1424,7 @@ geocloud = (function () {
                     o = this.addHere("hereNormalNightGrey");
                     break;
                 default : // Try to add as tile layer
-                    this.addTileLayers({
+                    o =this.addTileLayers({
                         layers: [l],
                         db: db,
                         isBaseLayer: true,
@@ -1450,7 +1453,7 @@ geocloud = (function () {
                 displayInLayerSwitcher: true,
                 name: null,
                 names: [],
-                resolutions: resolutions,
+                resolutions: this.map.resolutions,
                 type: "wms"
             };
             if (config) {

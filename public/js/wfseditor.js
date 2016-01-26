@@ -269,13 +269,13 @@ function startWfsEdition(layerName, geomField, wfsFilter, single, timeSlice) {
             },
             columns: columnsForGrid
         })/*,
-        bbar: [new Ext.PagingToolbar({
-            pageSize: 2,
-            store: store,
-            displayInfo: true,
-            displayMsg: 'Features {0} - {1} of {2}',
-            emptyMsg: "No features"
-        })]*/
+         bbar: [new Ext.PagingToolbar({
+         pageSize: 2,
+         store: store,
+         displayInfo: true,
+         displayMsg: 'Features {0} - {1} of {2}',
+         emptyMsg: "No features"
+         })]*/
     });
 
     south.add(grid);
@@ -461,7 +461,7 @@ $(document).ready(function () {
                                                 border: false,
                                                 tbar: [
                                                     {
-                                                        text: "<i class='icon-pencil btn-gc'></i> Edit feature #" + pkeyValue,
+                                                        text: "<i class='fa fa-edit'></i> Edit feature #" + pkeyValue,
                                                         handler: function () {
                                                             if (geoType === "GEOMETRY" || geoType === "RASTER") {
                                                                 Ext.MessageBox.show({
@@ -570,7 +570,8 @@ $(document).ready(function () {
         var treeConfig = [
             {
                 id: "baselayers",
-                nodeType: "gx_baselayercontainer"
+                nodeType: "gx_baselayercontainer",
+                singleClickExpand: true
             }
         ];
         $.ajax({
@@ -631,6 +632,7 @@ $(document).ready(function () {
                         treeConfig.push({
                             text: arr[i],
                             isLeaf: false,
+                            singleClickExpand: true,
                             expanded: false,
                             children: l.reverse()
                         });
@@ -693,7 +695,7 @@ $(document).ready(function () {
                                     filter.win = false;
                                 }
                                 $(".leaf-tools").empty();
-                                $("#" + id).html("<i class='icon-cog btn-gc' style='cursor:pointer' id='style-" + id + "'></i><i class='icon-fullscreen btn-gc' style='cursor:pointer' id='ext-" + id + "'></i>");
+                                $("#" + id).html("<i class='fa fa-cog' style='cursor:pointer' id='style-" + id + "'></i> <i class='fa fa-arrows-alt' style='cursor:pointer' id='ext-" + id + "'></i>");
                                 currentId = e.id;
                                 $("#style-" + id).on("click", function () {
                                     window.parent.Ext.getCmp("layerStylePanel").expand(true);
@@ -789,7 +791,7 @@ $(document).ready(function () {
                                 split: true,
                                 width: 350,
                                 tbar: [{
-                                    text: '<i class="icon-eye-open btn-gc"></i> ' + __('Class wizard'),
+                                    text: '<i class="fa fa-eye"></i> ' + __('Class wizard'),
                                     id: 'stylebutton',
                                     disabled: true,
                                     handler: function () {
@@ -797,14 +799,14 @@ $(document).ready(function () {
                                         window.parent.styleWizardWin(node.id);
                                     }
                                 }, '-', {
-                                    text: '<i class="icon-plus btn-gc"></i> ' + __('New layer'),
+                                    text: '<i class="fa fa-cloud-upload"></i> ' + __('New layer'),
                                     disabled: (subUser === schema || subUser === false) ? false : true,
                                     handler: function () {
                                         window.parent.onAdd();
                                     }
                                 }, '-',
                                     {
-                                        text: "<i class='icon-edit btn-gc'></i> " + __("Start edit"),
+                                        text: "<i class='fa fa-edit'></i> " + __("Start edit"),
                                         id: "editlayerbutton",
                                         disabled: true,
                                         handler: function (thisBtn, event) {
@@ -841,7 +843,7 @@ $(document).ready(function () {
                                             }
                                         }
                                     }, '-', {
-                                        text: "<i class='icon-refresh btn-gc'></i> " + __("Reload"),
+                                        text: "<i class='fa fa-refresh'></i> " + __("Reload"),
                                         handler: function () {
                                             stopEdit();
                                             reLoadTree();
@@ -908,14 +910,14 @@ $(document).ready(function () {
     wfsTools = [
         new GeoExt.Action({
             control: drawControl,
-            text: "<i class='icon-pencil btn-gc'></i> " + __("Draw"),
+            text: "<i class='fa fa-pencil'></i> " + __("Draw"),
             id: "editcreatebutton",
             disabled: true,
             enableToggle: true
         }),
         '-',
         {
-            text: "<i class='icon-trash btn-gc'></i> " + __("Delete"),
+            text: "<i class='fa fa-cut'></i> " + __("Delete"),
             id: "editdeletebutton",
             disabled: true,
             handler: function () {
@@ -933,7 +935,7 @@ $(document).ready(function () {
         },
         '-',
         {
-            text: "<i class='icon-ok btn-gc'></i> " + __("Save"),
+            text: "<i class='fa fa-save'></i> " + __("Save"),
             disabled: true,
             id: "editsavebutton",
             handler: function () {
@@ -947,14 +949,14 @@ $(document).ready(function () {
         },
         '-',
         {
-            text: "<i class='icon-stop btn-gc'></i> " + __("Stop editing"),
+            text: "<i class='fa fa-stop-circle'></i> " + __("Stop editing"),
             disabled: true,
             id: "editstopbutton",
             handler: stopEdit
         },
         '-',
         {
-            text: "<i class='icon-edit btn-gc'></i> " + __("Quick draw"),
+            text: "<i class='fa fa-pencil-square-o'></i> " + __("Quick draw"),
             id: "quickdrawbutton",
             disabled: true,
             handler: function () {
@@ -994,7 +996,7 @@ $(document).ready(function () {
         }
     ];
     mapTools = [{
-        text: "<i class='icon-resize-vertical btn-gc'></i> " + __("Measure"),
+        text: "<i class='fa fa-arrows-v'></i> " + __("Measure"),
         menu: new Ext.menu.Menu({
             items: [
                 {
@@ -1018,7 +1020,7 @@ $(document).ready(function () {
         })
     },
         {
-            text: "<i class='icon-search btn-gc'></i> " + __("Search"),
+            text: "<i class='fa fa-search'></i> " + __("Search"),
             handler: function (objRef) {
                 if (!searchWin) {
                     searchWin = new Ext.Window({
@@ -1027,6 +1029,7 @@ $(document).ready(function () {
                         width: 300,
                         height: 70,
                         plain: true,
+                        border: false,
                         closeAction: 'hide',
                         html: '<div style="padding: 5px" id="searchContent"><input style="width: 270px" type="text" id="gAddress" name="gAddress" value="" /></div>',
                         x: 250,
@@ -1089,7 +1092,7 @@ $(document).ready(function () {
         },
         '-',
         {
-            text: "<i class='icon-globe btn-gc'></i> " + __("Save extent"),
+            text: "<i class='fa fa-globe'></i> " + __("Save extent"),
             id: "extentbutton",
             disabled: false,
             handler: function () {
@@ -1124,7 +1127,7 @@ $(document).ready(function () {
             }
         }, '-',
         {
-            text: "<i class='icon-lock btn-gc'></i> " + __("Lock extent"),
+            text: "<i class='fa fa-unlock-alt'></i> " + __("Lock extent"),
             id: "extentlockbutton",
             enableToggle: true,
             tooltip: __('Lock the map extent for sub-users in Admin and for all users in the public Viewer.'),
@@ -1169,7 +1172,7 @@ $(document).ready(function () {
         },
         '-',
         {
-            text: "<i class='icon-th-list btn-gc'></i> " + __("Attributes"),
+            text: "<i class='fa fa-list'></i> " + __("Attributes"),
             id: "infobutton",
             disabled: true,
             handler: function () {
@@ -1178,8 +1181,8 @@ $(document).ready(function () {
         },
         '-',
         {
-            text: "<i class='icon-screenshot btn-gc'></i> " + __("Locate me"),
-                handler: function () {
+            text: "<i class='fa fa-location-arrow'></i> " + __("Locate me"),
+            handler: function () {
                 cloud.locate();
             }
         }];
@@ -1264,6 +1267,7 @@ $(document).ready(function () {
                 width: 300,
                 height: 90,
                 plain: true,
+                border: false,
                 closeAction: 'hide',
                 html: '<div style="padding: 5px"><div id="output" style="height: 20px; margin-bottom: 10px"></div><div>' + __("Close this window to disable measure tool") + '</div></div>',
                 x: 250,
