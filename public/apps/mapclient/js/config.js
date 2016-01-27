@@ -1,5 +1,7 @@
 /*global $:false */
 /*global Ext:false */
+/*global geocloud:false */
+/*global mygeocloud_ol:false */
 /*global Heron:false */
 /*global MapCentia:false */
 /*global OpenLayers:false */
@@ -33,7 +35,7 @@ MapCentia.setup = function () {
     Ext.BLANK_IMAGE_URL = '/js/ext/resources/images/default/s.gif';
 
     var uri = window.location.pathname.split("/"),
-        db = uri[3],
+        db = dbForConflict = uri[3],
         schema = uri[4],
         url = '/mapcache/' + db + '/';
 
@@ -170,7 +172,7 @@ MapCentia.setup = function () {
                                     isBaseLayer: isBaseLayer,
                                     title: (!v.bitmapsource) ? text : " ",
                                     visibility: false,
-                                    transitionEffect: 'resize'
+                                    transitionEffect: null
 
                                 }
                             ];
@@ -190,7 +192,7 @@ MapCentia.setup = function () {
                                     title: (!v.bitmapsource) ? text : " ",
                                     singleTile: false,
                                     visibility: false,
-                                    transitionEffect: 'resize',
+                                    transitionEffect: null,
                                     featureInfoFormat: isBaseLayer ? null : 'application/vnd.ogc.gml',
                                     metadata: {
                                         wfs: {
@@ -339,7 +341,7 @@ MapCentia.setup = function () {
         // Remove GEOMETRYCOLLECTION around the WKT string
         if (wkt.search("GEOMETRYCOLLECTION") !== -1) {
             wkt = wkt.replace("GEOMETRYCOLLECTION(", "");
-            wkt = wkt.substring(0, wkt.length - 1)
+            wkt = wkt.substring(0, wkt.length - 1);
         }
         if (buffer > 0) {
             bStore = new mygeocloud_ol.geoJsonStore(dbForConflict, {
@@ -1322,7 +1324,6 @@ MapCentia.init = function () {
         {
             type: "any",
             options: {
-                id: "custom-search",
                 text: "",
                 iconCls: "icon-draw-text",
                 tooltip: "Søg på adresse eller matrikelnr.",
@@ -1415,7 +1416,7 @@ MapCentia.init = function () {
                                                 cb(names);
                                             }
                                         }
-                                    })
+                                    });
                                 })();
                             }
                         }, {
@@ -1480,7 +1481,7 @@ MapCentia.init = function () {
                             } else {
                                 setTimeout(function () {
                                     $(".typeahead").val(datum.value + " ").trigger("paste").trigger("input");
-                                }, 100)
+                                }, 100);
                             }
                         });
                     }());
