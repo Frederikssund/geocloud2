@@ -31,12 +31,6 @@ class Layer extends \app\inc\Controller
     {
         $this->table = new \app\models\table("settings.geometry_columns_join");
         $data = (array)json_decode(urldecode(Input::get(null, true)));
-        if (isset($data["data"]->editable)) {
-            $data["data"]->editable = ($data["data"]->editable) ?: "0";
-        }
-        if (isset($data["data"]->skipconflict)) {
-            $data["data"]->skipconflict = ($data["data"]->skipconflict) ?: "0";
-        }
         $response = $this->auth($data["data"]->_key_);
         return (!$response['success']) ? $response : $this->table->updateRecord($data, "_key_");
     }
@@ -128,5 +122,10 @@ class Layer extends \app\inc\Controller
     {
         $response = $this->auth(null, array());
         return (!$response['success']) ? $response : $this->table->updateRoles(json_decode(Input::get())->data);
+    }
+
+    public function get_tags()
+    {
+        return $this->table->getTags();
     }
 }

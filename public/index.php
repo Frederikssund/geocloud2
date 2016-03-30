@@ -1,6 +1,6 @@
 <?php
 ini_set("display_errors", "Off");
-ini_set('memory_limit', '256M');
+ini_set('memory_limit', '512M');
 ini_set('max_execution_time', 0);
 error_reporting(3);
 
@@ -48,6 +48,9 @@ if (Input::getPath()->part(1) == "api") {
         Database::setDb(Input::getPath()->part(5));
     });
     Route::add("api/v1/meta", function () {
+        Session::start();
+    });
+    Route::add("api/v1/ckan", function () {
         Session::start();
     });
     Route::add("api/v1/extent");

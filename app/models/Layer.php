@@ -2,6 +2,8 @@
 namespace app\models;
 
 use \app\conf\App;
+use \app\models\Database;
+
 
 class Layer extends \app\models\Table
 {
@@ -298,7 +300,7 @@ class Layer extends \app\models\Table
         }
         $arr = array();
         $keySplit = explode(".", $_key_);
-        $table = new Table($keySplit[0] . "." . $keySplit[1], false, $hasGeom ? : false); // Add geometry types (or not)
+        $table = new Table($keySplit[0] . "." . $keySplit[1], false, $hasGeom ?: false); // Add geometry types (or not)
         $elasticsearchArr = (array)json_decode($this->getGeometryColumns($keySplit[0] . "." . $keySplit[1], "elasticsearch"));
         foreach ($table->metaData as $key => $value) {
             $esType = $elasticsearch->mapPg2EsType($value['type'], $value['geom_type'] == "POINT" ? true : false);
@@ -484,7 +486,15 @@ class Layer extends \app\models\Table
             }
             $type = $check["data"];
             $query = "DROP {$type} \"{$bits[0]}\".\"{$bits[1]}\" CASCADE";
+
             $res = $this->prepare($query);
+
+            // Delete package from CKAN
+            if (isset(App::$param["ckan"])) {
+                $uuid = $this->getUuid($table);
+                $ckanRes = $this->deleteCkan($uuid["uuid"]);
+                $response['ckan_delete'] = $ckanRes["success"];
+            }
             try {
                 $res->execute();
             } catch (\PDOException $e) {
@@ -494,6 +504,7 @@ class Layer extends \app\models\Table
                 $response['code'] = 401;
                 return $response;
             }
+
         }
         $this->commit();
         $response['success'] = true;
@@ -599,6 +610,47 @@ class Layer extends \app\models\Table
         return $response;
     }
 
+    public function getEstExtent($_key_, $srs = "4326")
+    {
+        $split = explode(".", $_key_);
+        $sql = "WITH bb AS (SELECT ST_astext(ST_Transform(ST_setsrid(ST_EstimatedExtent('" . $split[0] . "', '" . $split[1] . "', '" . $split[2] . "')," . $srs . ")," . $srs . ")) as geom) ";
+        $sql .= "SELECT ST_Xmin(ST_Extent(geom)) AS TXMin,ST_Xmax(ST_Extent(geom)) AS TXMax, ST_Ymin(ST_Extent(geom)) AS TYMin,ST_Ymax(ST_Extent(geom)) AS TYMax  FROM bb";
+        $result = $this->prepare($sql);
+        try {
+            $result->execute();
+            $row = $this->fetchRow($result);
+            $extent = array("minx" => $row['txmin'], "miny" => $row['tymin'], "maxx" => $row['txmax'], "maxy" => $row['tymax']);
+        } catch (\PDOException $e) {
+            $response['success'] = false;
+            $response['message'] = $e;
+            $response['code'] = 403;
+            return $response;
+        }
+        $response['success'] = true;
+        $response['extent'] = $extent;
+        return $response;
+    }
+
+    public function getCount($_key_)
+    {
+        $split = explode(".", $_key_);
+        $sql = "SELECT count(*) AS count FROM " . $split[0] . "." . $split[1];
+        $result = $this->prepare($sql);
+        try {
+            $result->execute();
+            $row = $this->fetchRow($result);
+            $count = $row['count'];
+        } catch (\PDOException $e) {
+            $response['success'] = false;
+            $response['message'] = $e;
+            $response['code'] = 403;
+            return $response;
+        }
+        $response['success'] = true;
+        $response['count'] = $count;
+        return $response;
+    }
+
     public function copyMeta($to, $from)
     {
         $query = "SELECT * FROM settings.geometry_columns_join WHERE _key_ =:from";
@@ -667,6 +719,268 @@ class Layer extends \app\models\Table
             return $response;
         }
         $response['success'] = true;
+        return $response;
+    }
+
+    public function updateCkan($key, $gc2Host)
+    {
+        $gc2Host = $gc2Host ?: \app\conf\App::$param["host"];
+        $metaConfig = \app\conf\App::$param["metaConfig"];
+        $ckanApiUrl = App::$param["ckan"]["host"];
+
+        $sql = "SELECT * FROM settings.geometry_columns_view WHERE _key_ =:key";
+        $res = $this->prepare($sql);
+        try {
+
+            $res->execute(array("key" => $key));
+
+        } catch (\PDOException $e) {
+            $response['success'] = false;
+            $response['message'] = $e->getMessage();
+            $response['code'] = 401;
+            return $response;
+        }
+        $row = $this->fetchRow($res, "assoc");
+
+        //$id = Database::getDb() . "-" . str_replace(".", "-", $row["_key_"]);
+        $id = $row["uuid"];
+
+        // Check if dataset already exists
+        $ch = curl_init($ckanApiUrl . "/api/3/action/package_show?id=" . $id);
+        curl_setopt($ch, CURLOPT_NOBODY, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_exec($ch);
+        $info = curl_getinfo($ch);
+        $datasetExists = ($info["http_code"] == 200) ? true : false;
+        curl_close($ch);
+
+        // Create the CKAN package object
+        $arr = array();
+
+        if ($row["tags"]) {
+            foreach (json_decode($row["tags"]) as $v) {
+                $arr[] = array("name" => $v);
+            }
+        }
+
+        // Get the default "ckan_org_id" value
+        $ckanOrgIdDefault = null;
+        foreach ($metaConfig as $value) {
+            if ($value["name"] == "ckan_org_id") {
+                $ckanOrgIdDefault = $value["default"];
+            }
+        }
+
+        // Get the default "update" flag
+        $updateDefault = null;
+        foreach ($metaConfig as $value) {
+            if ($value["name"] == "ckan_update") {
+                $updateDefault = $value["default"];
+            }
+        }
+
+        if (isset(json_decode($row["meta"], true)["ckan_update"])) {
+            $update = json_decode($row["meta"], true)["ckan_update"];
+        } else {
+            $update = $updateDefault;
+        }
+
+        if (!$update) {
+            $response['success'] = false;
+            $response['message'] = "Dataset not flagged for CKAN";
+            $response['code'] = 401;
+            return $response;
+        }
+
+        $ownerOrg = (json_decode($row["meta"], true)["ckan_org_id"]) ?: $ckanOrgIdDefault;
+
+        $widgetUrl = $gc2Host . "/apps/widgets/gc2map/" . Database::getDb() . "/" . $row["f_table_schema"] . "/" . App::$param["ckan"]["widgetState"] . "/" . $row["f_table_schema"] . "." . $row["f_table_name"];
+        $response = array();
+        $response["id"] = $id;
+        $response["name"] = $id;
+        $response["title"] = $row["f_table_title"];
+        $response["notes"] = $row["f_table_abstract"];
+        if (sizeof($arr) > 0) $response["tags"] = $arr;
+        $response["owner_org"] = $ownerOrg;
+        $response["resources"] = array(
+            array(
+                "id" => $id . "-html",
+                "name" => "Web widget",
+                "description" => "Html side til indlejring eller link",
+                "format" => "html",
+                "url" => $widgetUrl,
+            ),
+            array(
+                "id" => $id . "-geojson",
+                "name" => "GeoJSON",
+                "description" => "JSON format",
+                "format" => "geojson",
+                "url" => $gc2Host . "/api/v1/sql/" . Database::getDb() . "?q=SELECT * FROM " . $row["f_table_schema"] . "." . $row["f_table_name"] . " LIMIT 100&srs=4326"
+            ),
+            array(
+                "id" => $id . "-wms",
+                "name" => "WMS",
+                "description" => "OGC WMS op til version 1.3.0",
+                "format" => "wms",
+                "url" => $gc2Host . "/ows/" . Database::getDb() . "/" . $row["f_table_schema"] . "?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities"
+            ),
+            array(
+                "id" => $id . "-wfs",
+                "name" => "WFS",
+                "description" => "OGC WFS op til version 2.0.0",
+                "format" => "wfs",
+                "url" => $gc2Host . "/ows/" . Database::getDb() . "/" . $row["f_table_schema"] . "?SERVICE=WFS&VERSION=2.0&REQUEST=GetCapabilities"
+            ),
+            array(
+                "id" => $id . "_wmts",
+                "name" => "WMTS",
+                "description" => "OGC WMTS version 1.0",
+                "format" => "wmts",
+                "url" => $gc2Host . "/mapcache/" . Database::getDb() . "/wmts?SERVICE=WMTS&REQUEST=GetCapabilities"
+            ),
+            array(
+                "id" => $id . "-xyz",
+                "name" => "XYZ",
+                "description" => "Google XYZ service",
+                "format" => "xyz",
+                "url" => $gc2Host . "/mapcache/" . Database::getDb() . "/gmaps/" . $row["f_table_schema"] . "." . $row["f_table_name"] . "@g"
+            )
+        );
+
+        // Get extent
+        $extent = $this->getEstExtent($key);
+        $extentStr = "";
+        if ($extent["success"]) {
+            $extentStr = "minx: " . $extent["extent"]["minx"] . ", miny: " . $extent["extent"]["miny"] . ", maxx: " . $extent["extent"]["maxx"] . ", maxy: " . $extent["extent"]["maxy"];
+        }
+
+        // Get count
+        $count = $this->getCount($key);
+        $countStr = "";
+        if ($count["success"]) {
+            $countStr = $count["count"];
+        }
+
+        $response["extras"] = array(
+            array(
+                "key" => "Extent",
+                "value" => $extentStr
+            ),
+            array(
+                "key" => "Antal objekter",
+                "value" => $countStr
+            ),
+            array(
+                "key" => "Data oprettet",
+                "value" => $row["created"]
+            ),
+        );
+
+        $requestJson = json_encode($response);
+        $ch = curl_init($ckanApiUrl . "/api/3/action/package_" . ($datasetExists ? "patch" : "create"));
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $requestJson);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                'Content-Type: application/json',
+                'Content-Length: ' . strlen($requestJson),
+                'Authorization: ' . App::$param["ckan"]["apiKey"]
+            )
+        );
+        $packageBuffer = curl_exec($ch);
+        $info = curl_getinfo($ch);
+        curl_close($ch);
+        if ($info["http_code"] != 200) {
+            $response['json'] = $packageBuffer;
+            return $response;
+        } else {
+            // Get list of resource views, so we can see if the views already exists
+            $ch = curl_init($ckanApiUrl . "/api/3/action/resource_view_list?id=" . $id . "-html");
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+            $viewArr = json_decode(curl_exec($ch), true);
+            curl_close($ch);
+
+            // Set flags
+            $webViewId1 = (isset($viewArr["result"][0]["id"])) ? $viewArr["result"][0]["id"] : null;
+
+            // Webpage view for widget
+            $response = array();
+            if ($webViewId1) {
+                $response["id"] = $webViewId1;
+            }
+            $response["resource_id"] = $id . "-html";
+            $response["title"] = $row["f_table_title"] ?: $row["f_table_name"];
+            $response["description"] = $row["f_table_abstract"];
+            $response["view_type"] = "webpage_view";
+            $response["page_url"] = $widgetUrl;
+            $requestJson = json_encode($response);
+            $ch = curl_init($ckanApiUrl . "/api/3/action/resource_view_" . ($webViewId1 ? "update" : "create"));
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $requestJson);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                    'Content-Type: application/json',
+                    'Content-Length: ' . strlen($requestJson),
+                    'Authorization: ' . App::$param["ckan"]["apiKey"]
+                )
+            );
+            $buffer = curl_exec($ch);
+            curl_close($ch);
+
+
+            $response['json'] = $packageBuffer;
+            return $response;
+        }
+    }
+
+
+    public function deleteCkan($key)
+    {
+        $ckanApiUrl = App::$param["ckan"]["host"];
+        $requestJson = json_encode(array("id" => $key));
+        $ch = curl_init($ckanApiUrl . "/api/3/action/package_delete");
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $requestJson);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                'Content-Type: application/json',
+                'Content-Length: ' . strlen($requestJson),
+                'Authorization: ' . App::$param["ckan"]["apiKey"]
+            )
+        );
+        $buffer = curl_exec($ch);
+        curl_close($ch);
+        return json_decode($buffer, true);
+    }
+
+    public function getTags()
+    {
+
+        $sql = "SELECT tags FROM settings.geometry_columns_view";
+        $res = $this->prepare($sql);
+        try {
+            $res->execute();
+        } catch (\PDOException $e) {
+            $response['success'] = false;
+            $response['message'] = $e->getMessage();
+            $response['code'] = 401;
+            return $response;
+        }
+        $arr = array();
+        while ($row = $this->fetchRow($res, "assoc")) {
+            if ($row["tags"]) {
+                $arr[] = implode(",", json_decode($row["tags"]));
+            }
+        }
+        $arr = array_unique(explode(",", implode(",", $arr)));
+        $res = array();
+        foreach ($arr as $v) {
+            $res[]["tag"] = $v;
+        }
+        $response["data"] = $res;
+        $response["success"] = true;
         return $response;
     }
 }

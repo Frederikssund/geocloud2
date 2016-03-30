@@ -49,6 +49,7 @@ geocloud = (function () {
         BINGROAD = "bingRoad",
         BINGAERIAL = "bingAerial",
         BINGAERIALWITHLABELS = "bingAerialWithLabels",
+        DTKSKAERMKORT_25832 = "dtkSkaermkort@25832",
         DTKSKAERMKORT = "dtkSkaermkort",
         DTKSKAERMKORTDAEMPET = "dtkSkaermkortDaempet",
         DIGITALGLOBE = "DigitalGlobe:Imagery",
@@ -58,7 +59,7 @@ geocloud = (function () {
         resolutions = [156543.033928, 78271.516964, 39135.758482, 19567.879241, 9783.9396205,
             4891.96981025, 2445.98490513, 1222.99245256, 611.496226281, 305.748113141, 152.87405657,
             76.4370282852, 38.2185141426, 19.1092570713, 9.55462853565, 4.77731426782, 2.38865713391,
-            1.19432856696, 0.597164283478, 0.298582141739, 0.149291],
+            1.19432856696, 0.597164283478, 0.298582141739, 0.149291070869],
         googleMapAdded = {}, yandexMapAdded = {};
     // Try to set host from script if not set already
     if (typeof window.geocloud_host === "undefined") {
@@ -584,7 +585,7 @@ geocloud = (function () {
                 fadeAnimation: true,
                 zoomAnimation: true,
                 showLayerSwitcher: false,
-                maxExtent: '-20037508.34, -20037508.34, 20037508.34, 20037508.34',
+                // maxExtent: '-20037508.34, -20037508.34, 20037508.34, 20037508.34',
                 resolutions: resolutions
             };
         if (config) {
@@ -1255,6 +1256,156 @@ geocloud = (function () {
             l.id = name;
             return (l);
         };
+        //ol2 and leaflet
+        this.addDtkSkaermkortUtm = function (name, layer) {
+            var l,
+                uriLayerName = (layer === "dtk_skaermkort") ? "topo_skaermkort" : "topo_skaermkort_daempet",
+                topLeftCorner = new OpenLayers.LonLat(120000, 6500000),
+                tileWidth = 256,
+                tileHeight = 256;
+            switch (MAPLIB) {
+                case "ol2":
+                    l = new OpenLayers.Layer.WMTS({
+                        name: name,
+                        url: ["http://a.services.kortforsyningen.dk/" + uriLayerName + "?login=mh1&password=sajas&", "http://b.services.kortforsyningen.dk/" + uriLayerName, "http://c.services.kortforsyningen.dk/" + uriLayerName],
+                        style: "default",
+                        layer: layer,
+                        matrixSet: "View1",
+                        format: "image/jpeg",
+                        attribution: "&copy; Geodatastyrelsen",
+                        params: {
+                            login: "mh1",
+                            password: "sajas"
+                        },
+                        matrixIds: [
+                            {
+                                identifier: "L00",
+                                scaleDenominator: 1638.4 / 0.00028,
+                                topLeftCorner: topLeftCorner,
+                                tileWidth: tileWidth,
+                                tileHeight: tileHeight,
+                                matrixWidth: 3,
+                                matrixHeight: 2
+                            },
+                            {
+                                identifier: "L01",
+                                scaleDenominator: 819.2 / 0.00028,
+                                topLeftCorner: topLeftCorner,
+                                tileWidth: tileWidth, tileHeight: tileHeight,
+                                matrixWidth: 5,
+                                matrixHeight: 3
+                            },
+                            {
+                                identifier: "L02",
+                                scaleDenominator: 409.6 / 0.00028,
+                                topLeftCorner: topLeftCorner,
+                                tileWidth: tileWidth, tileHeight: tileHeight,
+                                matrixWidth: 9,
+                                matrixHeight: 3
+                            },
+                            {
+                                identifier: "L03",
+                                scaleDenominator: 204.8 / 0.00028,
+                                topLeftCorner: topLeftCorner,
+                                tileWidth: tileWidth, tileHeight: tileHeight,
+                                matrixWidth: 17,
+                                matrixHeight: 12
+                            },
+                            {
+                                identifier: "L04",
+                                scaleDenominator: 102.4 / 0.00028,
+                                topLeftCorner: topLeftCorner,
+                                tileWidth: tileWidth, tileHeight: tileHeight,
+                                matrixWidth: 34,
+                                matrixHeight: 23
+                            },
+                            {
+                                identifier: "L05",
+                                scaleDenominator: 51.2 / 0.00028,
+                                topLeftCorner: topLeftCorner,
+                                tileWidth: tileWidth, tileHeight: tileHeight,
+                                matrixWidth: 68,
+                                matrixHeight: 46
+                            },
+                            {
+                                identifier: "L06",
+                                scaleDenominator: 25.6 / 0.00028,
+                                topLeftCorner: topLeftCorner,
+                                tileWidth: tileWidth, tileHeight: tileHeight,
+                                matrixWidth: 135,
+                                matrixHeight: 92
+                            },
+                            {
+                                identifier: "L07",
+                                scaleDenominator: 12.8 / 0.00028,
+                                topLeftCorner: topLeftCorner,
+                                tileWidth: tileWidth, tileHeight: tileHeight,
+                                matrixWidth: 269,
+                                matrixHeight: 184
+                            },
+                            {
+                                identifier: "L08",
+                                scaleDenominator: 6.4 / 0.00028,
+                                topLeftCorner: topLeftCorner,
+                                tileWidth: tileWidth, tileHeight: tileHeight,
+                                matrixWidth: 538,
+                                matrixHeight: 397
+                            },
+                            {
+                                identifier: "L09",
+                                scaleDenominator: 3.2 / 0.00028,
+                                topLeftCorner: topLeftCorner,
+                                tileWidth: tileWidth, tileHeight: tileHeight,
+                                matrixWidth: 2149,
+                                matrixHeight: 1465
+                            },
+                            {
+                                identifier: "L10",
+                                scaleDenominator: 1.6 / 0.00028,
+                                topLeftCorner: topLeftCorner,
+                                tileWidth: tileWidth, tileHeight: tileHeight,
+                                matrixWidth: 4297,
+                                matrixHeight: 2930
+                            },
+                            {
+                                identifier: "L11",
+                                scaleDenominator: 0.8 / 0.00028,
+                                topLeftCorner: topLeftCorner,
+                                tileWidth: tileWidth, tileHeight: tileHeight,
+                                matrixWidth: 4297,
+                                matrixHeight: 2930
+                            },
+                            {
+                                identifier: "L12",
+                                scaleDenominator: 0.4 / 0.00028,
+                                topLeftCorner: topLeftCorner,
+                                tileWidth: tileWidth, tileHeight: tileHeight,
+                                matrixWidth: 8594,
+                                matrixHeight: 5860
+                            },
+                            {
+                                identifier: "L13",
+                                scaleDenominator: 0.2 / 0.00028,
+                                topLeftCorner: topLeftCorner,
+                                tileWidth: tileWidth, tileHeight: tileHeight,
+                                matrixWidth: 17188,
+                                matrixHeight: 11719
+                            }
+                        ],
+                        isBaseLayer: true,
+                        displayInLayerSwitcher: true,
+                        transitionEffect: 'resize'
+                    });
+                    this.map.addLayer(l);
+                    l.setVisibility(false);
+                    break;
+                case "leaflet":
+                    break;
+            }
+            l.baseLayer = true;
+            l.id = name;
+            return (l);
+        };
         this.addYandex = function (type) {
             var name, prettyName;
             switch (type) {
@@ -1414,6 +1565,12 @@ geocloud = (function () {
                 case "dtkSkaermkortDaempet":
                     o = this.addDtkSkaermkort("dtkSkaermkortDaempet", "dtk_skaermkort_daempet");
                     break;
+                case "dtkSkaermkort@25832":
+                    o = this.addDtkSkaermkortUtm("dtkSkaermkort@25832", "dtk_skaermkort");
+                    break;
+                case "dtkSkaermkortDaempet@25832":
+                    o = this.addDtkSkaermkortUtm("dtkSkaermkortDaempet@25832", "dtk_skaermkort_daempet");
+                    break;
                 case "DigitalGlobe:Imagery":
                     o = this.addDigitalGlobe("DigitalGlobe:Imagery");
                     break;
@@ -1424,7 +1581,7 @@ geocloud = (function () {
                     o = this.addHere("hereNormalNightGrey");
                     break;
                 default : // Try to add as tile layer
-                    o =this.addTileLayers({
+                    o = this.addTileLayers({
                         layers: [l],
                         db: db,
                         isBaseLayer: true,
@@ -1891,6 +2048,7 @@ geocloud = (function () {
         BINGAERIAL: BINGAERIAL,
         BINGAERIALWITHLABELS: BINGAERIALWITHLABELS,
         DTKSKAERMKORT: DTKSKAERMKORT,
+        DTKSKAERMKORT_25832: DTKSKAERMKORT_25832,
         DTKSKAERMKORTDAEMPET: DTKSKAERMKORTDAEMPET,
         DIGITALGLOBE: DIGITALGLOBE,
         HERENORMALDAYGREY: HERENORMALDAYGREY,

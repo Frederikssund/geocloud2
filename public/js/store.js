@@ -10,11 +10,16 @@
 /*global gc2i18n:false */
 /*global subUser:false */
 /*global __:false */
-
 Ext.Ajax.disableCaching = false;
 Ext.QuickTips.init();
-var form, store, writeFiles, clearTileCache, updateLegend, activeLayer, onEditWMSClasses, onAdd, onMove, onSchemaRename,
-    onSchemaDelete, resetButtons, initExtent = null, App = new Ext.App({}), updatePrivileges, updateWorkflow, settings,
+Ext.MessageBox.buttonText = {
+    ok: "<i class='fa fa-check'></i> " + __("Ok"),
+    cancel: "<i class='fa fa-remove'></i> " + __("Cancel"),
+    yes: "<i class='fa fa-check'></i> " + __("Yes"),
+    no: "<i class='fa fa-remove'></i> " + __("No")
+}
+var form, store, writeFiles, clearTileCache, updateLegend, activeLayer, onEditWMSClasses, onAdd, resetButtons,
+    initExtent = null, App = new Ext.App({}), updatePrivileges, updateWorkflow, settings,
     extentRestricted = false, spinner, styleWizardWin, workflowStore, workflowStoreLoaded = false, subUserGroups = {},
     dataStore, dataGrid, tableDataLoaded = false, dataPanel, esPanel, esGrid,
     enableWorkflow = (window.gc2Options.enableWorkflow !== null && typeof window.gc2Options.enableWorkflow[screenName] !== "undefined" && window.gc2Options.enableWorkflow[screenName] === true) || (window.gc2Options.enableWorkflow !== null && typeof window.gc2Options.enableWorkflow["*"] !== "undefined" && window.gc2Options.enableWorkflow["*"] === true);
@@ -22,7 +27,7 @@ var form, store, writeFiles, clearTileCache, updateLegend, activeLayer, onEditWM
 $(window).ready(function () {
     "use strict";
     Ext.Container.prototype.bufferResize = false;
-    var winAdd, winMoreSettings, fieldsForStore = {}, groups, groupsStore, subUsers;
+    var winAdd, winMoreSettings, fieldsForStore = {}, groups, groupsStore, tagStore, subUsers;
     $.ajax({
         url: '/controllers/layer/columnswithkey',
         async: false,
@@ -175,6 +180,20 @@ $(window).ready(function () {
         url: '/controllers/layer/groups'
     });
     groupsStore.load();
+
+    tagStore = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({
+            successProperty: 'success',
+            root: 'data'
+        }, [
+            {
+                "name": "tag"
+            }
+        ]),
+        url: '/controllers/layer/tags'
+    });
+    tagStore.load();
+
     var schemasStore = new Ext.data.Store({
         reader: new Ext.data.JsonReader({
             successProperty: 'success',
@@ -187,6 +206,7 @@ $(window).ready(function () {
         url: '/controllers/database/schemas'
     });
     schemasStore.load();
+
     //var editor = new Ext.ux.grid.RowEditor();
     var grid = new Ext.grid.EditorGridPanel({
         //plugins: [editor],
@@ -198,7 +218,7 @@ $(window).ready(function () {
                 return record.json.isview ? 'isview' : null;
             }
         },
-        height: 300,
+        height: (Ext.getBody().getViewSize().height / 2),
         split: true,
         region: 'north',
         frame: false,
@@ -373,27 +393,978 @@ $(window).ready(function () {
             {
                 text: '<i class="fa fa-user"></i> ' + __('Privileges'),
                 id: 'privileges-btn',
-                handler: onPrivileges,
-                disabled: true
+                handler: function (btn, ev) {
+                    var records = grid.getSelectionModel().getSelections();
+                    if (records.length === 0) {
+                        App.setAlert(App.STATUS_NOTICE, __("You've to select a layer"));
+                        return false;
+                    }
+                    var privilegesStore = new Ext.data.Store({
+                        writer: new Ext.data.JsonWriter({
+                            writeAllFields: false,
+                            encode: false
+                        }),
+                        reader: new Ext.data.JsonReader(
+                            {
+                                successProperty: 'success',
+                                idProperty: 'subuser',
+                                root: 'data',
+                                messageProperty: 'message'
+                            },
+                            [
+                                {
+                                    name: "subuser"
+                                },
+                                {
+                                    name: "privileges"
+                                },
+                                {
+                                    name: "group"
+                                }
+                            ]
+                        ),
+                        proxy: new Ext.data.HttpProxy({
+                            restful: true,
+                            type: 'json',
+                            api: {
+                                read: '/controllers/layer/privileges/' + records[0].get("_key_")
+                            },
+                            listeners: {
+                                exception: function (proxy, type, action, options, response, arg) {
+                                    if (type === 'remote') {
+                                        var message = "<p>" + __("Sorry, but something went wrong. The whole transaction is rolled back. Try to correct the problem and hit save again. You can look at the error below, maybe it will give you a hint about what's wrong") + "</p><br/><textarea rows=5' cols='31'>" + __(response.message) + "</textarea>";
+                                        Ext.MessageBox.show({
+                                            title: __('Failure'),
+                                            msg: message,
+                                            buttons: Ext.MessageBox.OK,
+                                            width: 300,
+                                            height: 300
+                                        });
+                                    } else {
+                                        privilgesWin.close();
+                                        Ext.MessageBox.show({
+                                            title: __("Failure"),
+                                            msg: __(Ext.decode(response.responseText).message),
+                                            buttons: Ext.MessageBox.OK,
+                                            width: 300,
+                                            height: 300
+                                        });
+                                    }
+                                }
+                            }
+                        }),
+                        autoSave: true
+                    });
+                    privilegesStore.load();
+                    var privilgesWin = new Ext.Window({
+                        title: __("Grant privileges to sub-users on") + " '" + records[0].get("f_table_name") + "'",
+                        modal: true,
+                        width: 600,
+                        height: 330,
+                        initCenter: true,
+                        closeAction: 'hide',
+                        border: false,
+                        layout: 'border',
+                        items: [
+                            new Ext.Panel({
+                                height: 500,
+                                region: "center",
+                                layout: 'border',
+                                border: false,
+                                items: [
+                                    new Ext.grid.EditorGridPanel({
+                                        store: privilegesStore,
+                                        viewConfig: {
+                                            forceFit: true
+                                        },
+                                        region: 'center',
+                                        frame: false,
+                                        border: false,
+                                        sm: new Ext.grid.RowSelectionModel({
+                                            singleSelect: true
+                                        }),
+                                        cm: new Ext.grid.ColumnModel({
+                                            defaults: {
+                                                sortable: true
+                                            },
+                                            columns: [
+                                                {
+                                                    header: __('Sub-user'),
+                                                    dataIndex: 'subuser',
+                                                    editable: false,
+                                                    width: 50
+                                                },
+                                                {
+                                                    header: __('Privileges'),
+                                                    dataIndex: 'privileges',
+                                                    sortable: false,
+                                                    renderer: function (val, cell, record, rowIndex, colIndex, store) {
+                                                        var _key_ = records[0].get("_key_"), disabled;
+                                                        if (typeof subUserGroups[record.data.subuser] === "undefined" || subUserGroups[record.data.subuser] === "") {
+                                                            disabled = "";
+                                                        } else {
+                                                            disabled = "disabled";
+                                                        }
+                                                        var retval =
+                                                                '<input ' + disabled + ' data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updatePrivileges(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="none" name="' + rowIndex + '"' + ((val === 'none') ? ' checked="checked"' : '') + '>&nbsp;' + __('None') + '&nbsp;&nbsp;&nbsp;' +
+                                                                '<input ' + disabled + ' data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updatePrivileges(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="read" name="' + rowIndex + '"' + ((val === 'read') ? ' checked="checked"' : '') + '>&nbsp;' + __('Only read') + '&nbsp;&nbsp;&nbsp;' +
+                                                                '<input ' + disabled + ' data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updatePrivileges(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="write" name="' + rowIndex + '"' + ((val === 'write') ? ' checked="checked"' : '') + '>&nbsp;' + __('Read and write') + '&nbsp;&nbsp;&nbsp;' +
+                                                                '<input ' + disabled + ' data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updatePrivileges(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="all" name="' + rowIndex + '"' + ((val === 'all') ? ' checked="checked"' : '') + '>&nbsp;' + __('All') + '&nbsp;&nbsp;&nbsp;'
+                                                            ;
+                                                        return retval;
+                                                    }
+                                                },
+                                                {
+                                                    header: __('Inherit privileges from'),
+                                                    dataIndex: 'group',
+                                                    editable: false,
+                                                    width: 50,
+                                                    renderer: function (val, cell, record, rowIndex, colIndex, store) {
+                                                        if (typeof subUserGroups[record.data.subuser] !== "undefined" && subUserGroups[record.data.subuser] !== "") {
+                                                            return subUserGroups[record.data.subuser];
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        })
+                                    }),
+                                    new Ext.Panel({
+                                            border: false,
+                                            region: "south",
+                                            bodyStyle: {
+                                                background: '#777',
+                                                color: '#fff',
+                                                padding: '7px'
+                                            },
+                                            html: "<ul>" +
+                                            "<li>" + "<b>" + __("None") + "</b>: " + __("The layer doesn't exist for the sub-user.") + "</li>" +
+                                            "<li>" + "<b>" + __("Only read") + "</b>: " + __("The sub-user can see and query the layer.") + "</li>" +
+                                            "<li>" + "<b>" + __("Read and write") + "</b>: " + __("The sub-user can edit the layer.") + "</li>" +
+                                            "<li>" + "<b>" + __("All") + "</b>: " + __("The sub-user change properties like style and alter table structure.") + "</li>" +
+                                            "<ul>" +
+                                            "<br><p>" +
+                                            __("If a sub-user is set to inherit the privileges of another sub-user, you can't change the privileges of the sub-user.") +
+                                            "</p>" +
+                                            "<br><p>" +
+                                            __("The privileges are granted for both Admin and external services like WMS and WFS.") +
+                                            "</p>"
+                                        }
+                                    )
+                                ]
 
+                            })
+                        ]
+                    }).show();
+                },
+                disabled: true
             },
             {
                 text: '<i class="fa fa-users"></i> ' + __('Workflow'),
                 id: 'workflow-btn',
-                handler: onWorkflow,
+                handler: function (btn, ev) {
+                    var records = grid.getSelectionModel().getSelections(), workflowWin;
+                    if (records.length === 0) {
+                        App.setAlert(App.STATUS_NOTICE, __("You've to select a layer"));
+                        return false;
+                    }
+                    var workflowStore = new Ext.data.Store({
+                        writer: new Ext.data.JsonWriter({
+                            writeAllFields: false,
+                            encode: false
+                        }),
+                        reader: new Ext.data.JsonReader(
+                            {
+                                successProperty: 'success',
+                                idProperty: 'subuser',
+                                root: 'data',
+                                messageProperty: 'message'
+                            },
+                            [
+                                {
+                                    name: "subuser"
+                                },
+                                {
+                                    name: "roles"
+                                }
+                            ]
+                        ),
+                        proxy: new Ext.data.HttpProxy({
+                            restful: true,
+                            type: 'json',
+                            api: {
+                                read: '/controllers/layer/roles/' + records[0].get("_key_")
+                            },
+                            listeners: {
+                                exception: function (proxy, type, action, options, response, arg) {
+                                    if (type === 'remote') {
+                                        var message = "<p>" + __("Sorry, but something went wrong. The whole transaction is rolled back. Try to correct the problem and hit save again. You can look at the error below, maybe it will give you a hint about what's wrong") + "</p><br/><textarea rows=5' cols='31'>" + __(response.message) + "</textarea>";
+                                        Ext.MessageBox.show({
+                                            title: __('Failure'),
+                                            msg: message,
+                                            buttons: Ext.MessageBox.OK,
+                                            width: 300,
+                                            height: 300
+                                        });
+                                    } else {
+                                        workflowWin.close();
+                                        Ext.MessageBox.show({
+                                            title: __("Failure"),
+                                            msg: __(Ext.decode(response.responseText).message),
+                                            buttons: Ext.MessageBox.OK,
+                                            width: 300,
+                                            height: 300
+                                        });
+                                    }
+                                }
+                            }
+                        }),
+                        autoSave: true
+                    });
+
+                    Ext.Ajax.request({
+                        url: '/controllers/table/checkcolumn/' + records[0].get("f_table_schema") + "." + records[0].get("f_table_name") + "/gc2_version_gid",
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json; charset=utf-8'
+                        },
+                        success: function (response) {
+                            var r = Ext.decode(response.responseText);
+                            if (!r.exists) {
+                                Ext.MessageBox.show({
+                                    title: 'Failure',
+                                    msg: __("The table must be versioned."),
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                });
+                                return false;
+                            } else {
+                                Ext.Ajax.request({
+                                    url: '/controllers/table/checkcolumn/' + records[0].get("f_table_schema") + "." + records[0].get("f_table_name") + "/gc2_status",
+                                    method: 'GET',
+                                    headers: {
+                                        'Content-Type': 'application/json; charset=utf-8'
+                                    },
+                                    success: function (response) {
+                                        var r = Ext.decode(response.responseText), go;
+                                        go = function () {
+                                            workflowWin = new Ext.Window({
+                                                title: __("Apply role to sub-users on") + " '" + records[0].get("f_table_name") + "'",
+                                                modal: true,
+                                                width: 500,
+                                                height: 330,
+                                                initCenter: true,
+                                                closeAction: 'hide',
+                                                border: false,
+                                                layout: 'border',
+                                                items: [
+                                                    new Ext.Panel({
+                                                        height: 200,
+                                                        border: false,
+                                                        region: "center",
+                                                        items: [
+                                                            new Ext.grid.EditorGridPanel({
+                                                                store: workflowStore,
+                                                                viewConfig: {
+                                                                    forceFit: true
+                                                                },
+                                                                height: 200,
+                                                                region: 'center',
+                                                                frame: false,
+                                                                border: false,
+                                                                sm: new Ext.grid.RowSelectionModel({
+                                                                    singleSelect: true
+                                                                }),
+                                                                cm: new Ext.grid.ColumnModel({
+                                                                    defaults: {
+                                                                        sortable: true
+                                                                    },
+                                                                    columns: [
+                                                                        {
+                                                                            header: __('Sub-user'),
+                                                                            dataIndex: 'subuser',
+                                                                            editable: false,
+                                                                            width: 50
+                                                                        },
+                                                                        {
+                                                                            header: __('Role'),
+                                                                            dataIndex: 'roles',
+                                                                            sortable: false,
+                                                                            renderer: function (val, cell, record, rowIndex, colIndex, store) {
+                                                                                var _key_ = records[0].get("_key_");
+                                                                                var retval =
+                                                                                        '<input data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updateWorkflow(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="none" name="' + rowIndex + '"' + ((val === 'none') ? ' checked="checked"' : '') + '>&nbsp;' + __('None') + '&nbsp;&nbsp;&nbsp;' +
+                                                                                        '<input data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updateWorkflow(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="author" name="' + rowIndex + '"' + ((val === 'author') ? ' checked="checked"' : '') + '>&nbsp;' + __('Author') + '&nbsp;&nbsp;&nbsp;' +
+                                                                                        '<input data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updateWorkflow(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="reviewer" name="' + rowIndex + '"' + ((val === 'reviewer') ? ' checked="checked"' : '') + '>&nbsp;' + __('Reviewer') + '&nbsp;&nbsp;&nbsp;' +
+                                                                                        '<input data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updateWorkflow(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="publisher" name="' + rowIndex + '"' + ((val === 'publisher') ? ' checked="checked"' : '') + '>&nbsp;' + __('Publisher') + '&nbsp;&nbsp;&nbsp;'
+                                                                                    ;
+                                                                                return retval;
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                })
+                                                            }),
+                                                            new Ext.Panel({
+                                                                    height: 110,
+                                                                    border: false,
+                                                                    region: "south",
+                                                                    bodyStyle: {
+                                                                        background: '#777',
+                                                                        color: '#fff',
+                                                                        padding: '7px'
+                                                                    },
+                                                                    html: "<ul>" +
+                                                                    "<li>" + "<b>" + __("None") + "</b>: " + __("The layer doesn't exist for the sub-user.") + "</li>" +
+                                                                    "<li>" + "<b>" + __("Only read") + "</b>: " + __("The sub-user can see and query the layer.") + "</li>" +
+                                                                    "<li>" + "<b>" + __("Read and write") + "</b>: " + __("The sub-user can edit the layer.") + "</li>" +
+                                                                    "<ul>" +
+                                                                    "<br><p>" +
+                                                                    __("The privileges are granted for both Admin and external services like WMS and WFS.") +
+                                                                    "</p>"
+                                                                }
+                                                            )
+                                                        ]
+
+                                                    })
+                                                ]
+                                            }).show();
+                                            workflowStore.load();
+                                        };
+                                        if (!r.exists) {
+                                            Ext.MessageBox.confirm(__('Confirm'), __("You are about to .....") + " '" + records[0].get("f_table_name") + "'. " + __("Are you sure?"), function (btn) {
+                                                if (btn === "yes") {
+                                                    Ext.Ajax.request({
+                                                        url: '/controllers/table/workflow/' + records[0].get("f_table_schema") + "." + records[0].get("f_table_name"),
+                                                        method: 'PUT',
+                                                        headers: {
+                                                            'Content-Type': 'application/json; charset=utf-8'
+                                                        },
+                                                        success: function () {
+                                                            tableStructure.grid.getStore().reload();
+                                                            go();
+                                                        },
+                                                        failure: function (response) {
+                                                            Ext.MessageBox.show({
+                                                                title: 'Failure',
+                                                                msg: __(Ext.decode(response.responseText).message),
+                                                                buttons: Ext.MessageBox.OK,
+                                                                width: 400,
+                                                                height: 300,
+                                                                icon: Ext.MessageBox.ERROR
+                                                            });
+                                                        }
+                                                    });
+                                                } else {
+                                                    return false;
+
+                                                }
+                                            });
+                                        } else {
+                                            go();
+                                        }
+                                    },
+                                    failure: function (response) {
+                                        Ext.MessageBox.show({
+                                            title: 'Failure',
+                                            msg: __(Ext.decode(response.responseText).message),
+                                            buttons: Ext.MessageBox.OK,
+                                            width: 400,
+                                            height: 300,
+                                            icon: Ext.MessageBox.ERROR
+                                        });
+                                    }
+                                });
+
+                            }
+
+                        }
+                    });
+
+
+                },
                 disabled: true,
                 hidden: !enableWorkflow
             },
             {
                 text: '<i class="fa fa-cogs"></i> ' + __('Advanced'),
-                handler: onEditMoreSettings,
+                handler: function (btn, ev) {
+                    var record = grid.getSelectionModel().getSelected();
+                    if (!record) {
+                        App.setAlert(App.STATUS_NOTICE, __("You've to select a layer"));
+                        return false;
+                    }
+                    var r = record;
+                    winMoreSettings = new Ext.Window({
+                        title: '<i class="fa fa-cogs"></i> ' + __("Advanced settings on") + " '" + record.get("f_table_name") + "'",
+                        modal: true,
+                        layout: 'fit',
+                        width: 450,
+                        height: 460,
+                        closeAction: 'close',
+                        plain: true,
+                        border: false,
+                        items: [new Ext.Panel({
+                            frame: false,
+                            border: false,
+                            layout: 'border',
+                            items: [new Ext.FormPanel({
+                                labelWidth: 100,
+                                // label settings here cascade unless overridden
+                                frame: false,
+                                border: false,
+                                region: 'center',
+                                viewConfig: {
+                                    forceFit: true
+                                },
+                                id: "detailform",
+                                bodyStyle: 'padding: 10px 10px 0 10px;',
+
+                                items: [
+                                    {
+                                        xtype: 'fieldset',
+                                        title: __('Settings'),
+                                        defaults: {
+                                            anchor: '100%'
+                                        },
+                                        items: [
+                                            {
+                                                name: '_key_',
+                                                xtype: 'hidden',
+                                                value: r.data._key_
+                                            },
+                                            {
+                                                xtype: 'textfield',
+                                                fieldLabel: __('Meta data URL'),
+                                                name: 'meta_url',
+                                                value: r.data.meta_url
+                                            },
+                                            {
+                                                xtype: 'textfield',
+                                                fieldLabel: __('WMS source'),
+                                                name: 'wmssource',
+                                                value: r.data.wmssource
+                                            },
+                                            {
+                                                xtype: 'combo',
+                                                store: new Ext.data.ArrayStore({
+                                                    fields: ['name', 'value'],
+                                                    data: [
+                                                        ['true', true],
+                                                        ['false', false]
+                                                    ]
+                                                }),
+                                                displayField: 'name',
+                                                valueField: 'value',
+                                                mode: 'local',
+                                                typeAhead: false,
+                                                editable: false,
+                                                triggerAction: 'all',
+                                                name: 'not_querable',
+                                                fieldLabel: 'Not querable',
+                                                value: r.data.not_querable
+                                            },
+                                            {
+                                                xtype: 'combo',
+                                                store: new Ext.data.ArrayStore({
+                                                    fields: ['name', 'value'],
+                                                    data: [
+                                                        ['true', true],
+                                                        ['false', false]
+                                                    ]
+                                                }),
+                                                displayField: 'name',
+                                                valueField: 'value',
+                                                mode: 'local',
+                                                typeAhead: false,
+                                                editable: false,
+                                                triggerAction: 'all',
+                                                name: 'baselayer',
+                                                fieldLabel: 'Is baselayer',
+                                                value: r.data.baselayer
+                                            },
+                                            {
+                                                xtype: 'textfield',
+                                                fieldLabel: __('SQL where clause'),
+                                                name: 'filter',
+                                                value: r.data.filter
+                                            },
+                                            {
+                                                xtype: 'textfield',
+                                                fieldLabel: __('File source'),
+                                                name: 'bitmapsource',
+                                                value: r.data.bitmapsource
+                                            },
+                                            {
+                                                xtype: 'combo',
+                                                store: new Ext.data.ArrayStore({
+                                                    fields: ['name', 'value'],
+                                                    data: [
+                                                        ['true', true],
+                                                        ['false', false]
+                                                    ]
+                                                }),
+                                                displayField: 'name',
+                                                valueField: 'value',
+                                                mode: 'local',
+                                                typeAhead: false,
+                                                editable: false,
+                                                triggerAction: 'all',
+                                                name: 'enablesqlfilter',
+                                                fieldLabel: 'Enable sql filtering in Viewer',
+                                                value: r.data.enablesqlfilter
+                                            },
+                                            {
+                                                xtype: 'textfield',
+                                                fieldLabel: __('ES trigger table'),
+                                                name: 'triggertable',
+                                                value: r.data.triggertable
+                                            },
+                                            {
+                                                xtype: 'textarea',
+                                                height: 100,
+                                                fieldLabel: __('View definition'),
+                                                name: 'viewdefinition',
+                                                value: r.json.viewdefinition,
+                                                disabled: true
+                                            }]
+                                    }
+                                ],
+                                buttons: [
+                                    {
+                                        text: '<i class="fa fa-check"></i> ' + __('Update'),
+                                        handler: function () {
+                                            var f = Ext.getCmp('detailform');
+                                            if (f.form.isValid()) {
+                                                var values = f.form.getValues();
+
+                                                for (var key in values) {
+                                                    if (values.hasOwnProperty(key)) {
+                                                        values[key] = encodeURIComponent(values[key]);
+                                                    }
+                                                }
+
+                                                var param = {
+                                                    data: values
+                                                };
+                                                param = Ext.util.JSON.encode(param);
+                                                Ext.Ajax.request({
+                                                    url: '/controllers/layer/records/_key_',
+                                                    method: 'put',
+                                                    headers: {
+                                                        'Content-Type': 'application/json; charset=utf-8'
+                                                    },
+                                                    params: param,
+                                                    success: function () {
+                                                        //TODO deselect/select
+                                                        grid.getSelectionModel().clearSelections();
+                                                        store.reload();
+                                                        groupsStore.load();
+                                                        App.setAlert(App.STATUS_NOTICE, __("Settings updated"));
+                                                        winMoreSettings.close();
+                                                    },
+                                                    failure: function (response) {
+                                                        winMoreSettings.close();
+                                                        Ext.MessageBox.show({
+                                                            title: 'Failure',
+                                                            msg: __(Ext.decode(response.responseText).message),
+                                                            buttons: Ext.MessageBox.OK,
+                                                            width: 400,
+                                                            height: 300,
+                                                            icon: Ext.MessageBox.ERROR
+                                                        });
+                                                    }
+                                                });
+                                            } else {
+                                                var s = '';
+                                                Ext.iterate(f.form.getValues(), function (key, value) {
+                                                    s += String.format("{0} = {1}<br />", key, value);
+                                                }, this);
+                                            }
+                                        }
+                                    }
+                                ]
+                            })]
+                        })]
+                    });
+                    winMoreSettings.show(this);
+                },
                 id: 'advanced-btn',
                 disabled: true
             },
             {
                 text: '<i class="fa fa-lock"></i> ' + __('Services'),
-                handler: onGlobalSettings
+                handler: function (btn, ev) {
+                    new Ext.Window({
+                        title: "Services",
+                        modal: true,
+                        width: 850,
+                        height: 430,
+                        initCenter: true,
+                        closeAction: 'hide',
+                        border: false,
+                        layout: 'border',
+                        items: [
+                            new Ext.Panel({
+                                region: "center",
+                                layout: 'border',
+                                border: false,
 
+                                items: [
+                                    new Ext.Panel({
+                                        border: false,
+                                        region: "center",
+                                        items: [
+                                            httpAuth.form,
+                                            apiKey.form
+                                        ]
+                                    }),
+
+                                    new Ext.Panel({
+                                        region: "south",
+                                        border: false,
+                                        bodyStyle: {
+                                            background: '#777',
+                                            color: '#fff',
+                                            padding: '7px'
+                                        },
+                                        html: __("HTTP Basic auth password and API key are set for the specific (sub) user.")
+                                    })
+                                ]
+
+                            }), new Ext.Panel({
+                                layout: "border",
+                                region: "east",
+                                width: 600,
+                                id: "service-dialog",
+                                items: [
+                                    new Ext.Panel({
+                                        border: false,
+                                        region: "center",
+                                        defaults: {
+                                            bodyStyle: {
+                                                background: '#ffffff',
+                                                padding: '7px'
+                                            },
+                                            border: false
+                                        },
+                                        items: [
+                                            new Ext.Panel({
+                                                contentEl: "wfs-dialog"
+                                            }),
+                                            new Ext.Panel({
+                                                contentEl: "wms-dialog"
+                                            }),
+                                            new Ext.Panel({
+                                                contentEl: "tms-dialog"
+                                            }),
+                                            new Ext.Panel({
+                                                contentEl: "sql-dialog"
+                                            }),
+                                            new Ext.Panel({
+                                                contentEl: "elasticsearch-dialog"
+                                            })
+                                        ]
+                                    })
+                                ]
+                            })]
+                    }).show(this);
+                }
+            },
+            {
+                text: '<i class="fa fa-tags"></i> ' + __('Tags'),
+                handler: function (btn, ev) {
+                    var records = grid.getSelectionModel().getSelections();
+                    if (records.length === 0) {
+                        App.setAlert(App.STATUS_NOTICE, __("You've to select a layer"));
+                        return false;
+                    }
+                    var win = new Ext.Window({
+                        title: '<i class="fa fa-tags"></i> ' + __("Add tags on") + ' ' + records.length + ' ' + __('table(s)'),
+                        modal: true,
+                        layout: 'fit',
+                        width: 450,
+                        height: 220,
+                        closeAction: 'close',
+                        plain: true,
+                        border: false,
+                        resizable: false,
+                        items: [new Ext.Panel({
+                            frame: false,
+                            border: false,
+                            layout: 'border',
+                            items: [
+                                {
+                                    xtype: "form",
+                                    frame: false,
+                                    border: false,
+                                    region: 'center',
+                                    viewConfig: {
+                                        forceFit: true
+                                    },
+                                    id: "tagsform",
+                                    layout: "form",
+                                    bodyStyle: 'padding: 10px',
+                                    defaults: {
+                                        anchor: '100%'
+                                    },
+                                    labelWidth: 1,
+                                    items: [
+                                        new Ext.ux.form.SuperBoxSelect({
+                                            allowBlank: true,
+                                            msgTarget: 'under',
+                                            allowAddNewData: true,
+                                            assertValue: null,
+                                            addNewDataOnBlur: true,
+                                            name: 'tags',
+                                            store: tagStore,
+                                            displayField: 'tag',
+                                            valueField: 'tag',
+                                            mode: 'local',
+                                            value: (records.length === 1 ) ? ((records[0].data.tags !== null) ? Ext.decode(records[0].data.tags) : []) : [],
+                                            listeners: {
+                                                newitem: function (bs, v, f) {
+                                                    bs.addNewItem({
+                                                        tag: v
+                                                    });
+                                                }
+                                            }
+                                        })
+                                    ],
+                                    buttons: [
+                                        {
+                                            text: '<i class="fa fa-check"></i> ' + __('Update'),
+                                            handler: function () {
+
+                                                var f = Ext.getCmp('tagsform');
+                                                if (f.form.isValid()) {
+                                                    var values = f.form.getValues();
+                                                    var data = [];
+                                                    Ext.iterate(records, function (v) {
+                                                        data.push(
+                                                            {
+                                                                _key_: v.get("_key_"),
+                                                                tags: values.tags
+                                                            }
+                                                        );
+                                                    });
+                                                    var param = {
+                                                        data: data
+                                                    };
+                                                    param = Ext.util.JSON.encode(param);
+                                                    Ext.Ajax.request({
+                                                        url: '/controllers/layer/records/_key_',
+                                                        method: 'put',
+                                                        headers: {
+                                                            'Content-Type': 'application/json; charset=utf-8'
+                                                        },
+                                                        params: param,
+                                                        success: function () {
+                                                            grid.getSelectionModel().clearSelections();
+                                                            store.reload();
+                                                            tagStore.load();
+                                                            App.setAlert(App.STATUS_NOTICE, __("Tags updated"));
+                                                            win.close();
+                                                        },
+                                                        failure: function (response) {
+                                                            Ext.MessageBox.show({
+                                                                title: 'Failure',
+                                                                msg: __(Ext.decode(response.responseText).message),
+                                                                buttons: Ext.MessageBox.OK,
+                                                                width: 400,
+                                                                height: 300,
+                                                                icon: Ext.MessageBox.ERROR
+                                                            });
+                                                        }
+                                                    });
+                                                } else {
+                                                    var s = '';
+                                                    Ext.iterate(f.form.getValues(), function (key, value) {
+                                                        s += String.format("{0} = {1}<br />", key, value);
+                                                    }, this);
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }]
+                        })]
+                    }).show(this);
+                }
+            },
+            {
+                text: '<i class="fa fa-info"></i> ' + __('Meta'),
+                handler: function (btn, ev) {
+                    var records = grid.getSelectionModel().getSelections(), win;
+                    if (records.length === 0) {
+                        App.setAlert(App.STATUS_NOTICE, __("You've to select a layer"));
+                        return false;
+                    }
+                    win = new Ext.Window({
+                        title: '<i class="fa fa-info"></i> ' + __("Add meta on") + ' ' + records.length + ' ' + __('table(s)'),
+                        modal: true,
+                        layout: 'fit',
+                        width: 450,
+                        height: 220,
+                        closeAction: 'close',
+                        plain: true,
+                        border: false,
+                        resizable: false,
+                        items: [new Ext.Panel({
+                            frame: false,
+                            border: false,
+                            layout: 'border',
+                            items: [
+                                {
+                                    xtype: "form",
+                                    frame: false,
+                                    border: false,
+                                    region: 'center',
+                                    viewConfig: {
+                                        forceFit: true
+                                    },
+                                    id: "metaform",
+                                    layout: "form",
+                                    bodyStyle: 'padding: 10px',
+                                    labelWidth: 80,
+                                    items: [
+                                        {
+                                            xtype: 'fieldset',
+                                            title: __('Custom settings'),
+                                            defaults: {
+                                                anchor: '100%'
+                                            },
+                                            items: (function () {
+                                                var fields = [];
+                                                Ext.each(window.gc2Options.metaConfig, function (v) {
+                                                    switch (v.type) {
+                                                        case "text":
+                                                            fields.push(
+                                                                {
+                                                                    xtype: 'textfield',
+                                                                    fieldLabel: v.title,
+                                                                    name: v.name,
+                                                                    value: (records.length === 1 ) ? (Ext.decode(records[0].data.meta)[v.name] || v.default) : null
+                                                                }
+                                                            )
+                                                            break;
+                                                        case "checkbox":
+                                                            fields.push(
+                                                                {
+                                                                    xtype: 'checkbox',
+                                                                    fieldLabel: v.title,
+                                                                    name: v.name,
+                                                                    checked: (records.length === 1 ) ? ((Ext.decode(records[0].data.meta)[v.name] !== undefined) ? Ext.decode(records[0].data.meta)[v.name] : v.default) : false
+                                                                }
+                                                            )
+                                                            break;
+                                                        case "combo":
+                                                            fields.push(
+                                                                {
+                                                                    xtype: 'combo',
+                                                                    displayField: 'name',
+                                                                    valueField: 'value',
+                                                                    mode: 'local',
+                                                                    store: new Ext.data.JsonStore({
+                                                                        fields: ['name', 'value'],
+                                                                        data: v.values
+                                                                    }),
+                                                                    triggerAction: 'all',
+                                                                    name: v.name,
+                                                                    fieldLabel: v.title,
+                                                                    value: (records.length === 1 ) ? ((Ext.decode(records[0].data.meta)[v.name]) || v.default) : null
+                                                                }
+                                                            )
+                                                            break;
+                                                        case "superboxselect":
+                                                            fields.push(
+                                                                new Ext.ux.form.SuperBoxSelect({
+                                                                    allowBlank: true,
+                                                                    msgTarget: 'under',
+                                                                    allowAddNewData: true,
+                                                                    assertValue: null,
+                                                                    addNewDataOnBlur: true,
+                                                                    name: v.name,
+                                                                    store: new Ext.data.ArrayStore({
+                                                                        fields: ['name', 'value'],
+                                                                        data: Ext.decode(records[0].data.meta)[v.name] || []
+                                                                    }),
+                                                                    displayField: 'tag',
+                                                                    valueField: 'tag',
+                                                                    mode: 'local',
+                                                                    value: (records.length === 1 ) ? ((Ext.decode(records[0].data.meta)[v.name] !== null) ? Ext.decode(records[0].data.meta)[v.name] : []) : [],
+                                                                    listeners: {
+                                                                        newitem: function (bs, v, f) {
+                                                                            bs.addNewItem({
+                                                                                tag: v
+                                                                            });
+                                                                        }
+                                                                    }
+                                                                })
+                                                            )
+                                                            break;
+                                                    }
+                                                })
+                                                return fields;
+                                            }())
+                                        }
+                                    ],
+                                    buttons: [
+                                        {
+                                            text: '<i class="fa fa-check"></i> ' + __('Update'),
+                                            handler: function () {
+
+                                                var f = Ext.getCmp('metaform');
+                                                if (f.form.isValid()) {
+                                                    var values = f.form.getFieldValues();
+                                                    var data = [];
+                                                    Ext.iterate(records, function (v) {
+                                                        data.push(
+                                                            {
+                                                                _key_: v.get("_key_"),
+                                                                meta: values
+                                                            }
+                                                        );
+                                                    });
+                                                    var param = {
+                                                        data: data
+                                                    };
+                                                    param = Ext.util.JSON.encode(param);
+                                                    Ext.Ajax.request({
+                                                        url: '/controllers/layer/records/_key_',
+                                                        method: 'put',
+                                                        headers: {
+                                                            'Content-Type': 'application/json; charset=utf-8'
+                                                        },
+                                                        params: param,
+                                                        success: function () {
+                                                            grid.getSelectionModel().clearSelections();
+                                                            store.reload();
+                                                            App.setAlert(App.STATUS_NOTICE, __("Meta data updated"));
+                                                            win.close();
+                                                        },
+                                                        failure: function (response) {
+                                                            Ext.MessageBox.show({
+                                                                title: 'Failure',
+                                                                msg: __(Ext.decode(response.responseText).message),
+                                                                buttons: Ext.MessageBox.OK,
+                                                                width: 400,
+                                                                height: 300,
+                                                                icon: Ext.MessageBox.ERROR
+                                                            });
+                                                        }
+                                                    });
+                                                } else {
+                                                    var s = '';
+                                                    Ext.iterate(f.form.getValues(), function (key, value) {
+                                                        s += String.format("{0} = {1}<br />", key, value);
+                                                    }, this);
+                                                }
+                                            }
+                                        }
+                                    ]
+
+                                }]
+                        })]
+                    }).show(this);
+                }
             },
             {
                 text: '<i class="fa fa-remove"></i> ' + __('Clear tile cache'),
@@ -441,8 +1412,120 @@ $(window).ready(function () {
                 text: '<i class="fa fa-arrow-right"></i> ' + __('Move layers'),
                 disabled: true,
                 id: 'movelayer-btn',
-                handler: function () {
-                    onMove();
+                handler: function (btn, ev) {
+                    var records = grid.getSelectionModel().getSelections();
+                    if (records.length === 0) {
+                        App.setAlert(App.STATUS_NOTICE, __("You've to select a layer"));
+                        return false;
+                    }
+                    var winMoveTable = new Ext.Window({
+                        title: __("Move") + " " + records.length + " " + __("selected to another schema"),
+                        modal: true,
+                        layout: 'fit',
+                        width: 270,
+                        height: 80,
+                        closeAction: 'close',
+                        plain: true,
+                        border: false,
+                        items: [
+                            {
+                                defaults: {
+                                    border: false
+                                },
+                                layout: 'hbox',
+                                border: false,
+                                items: [
+                                    {
+                                        xtype: "form",
+                                        id: "moveform",
+                                        layout: "form",
+                                        bodyStyle: 'padding: 10px',
+                                        items: [
+                                            {
+                                                xtype: 'container',
+                                                border: false,
+                                                items: [
+                                                    {
+                                                        xtype: "combo",
+                                                        store: schemasStore,
+                                                        displayField: 'schema',
+                                                        editable: false,
+                                                        mode: 'local',
+                                                        triggerAction: 'all',
+                                                        value: schema,
+                                                        name: 'schema',
+                                                        width: 150
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        layout: 'form',
+                                        bodyStyle: 'padding: 10px',
+                                        border: false,
+                                        items: [
+                                            {
+                                                xtype: 'button',
+                                                text: 'Move',
+                                                handler: function () {
+                                                    var f = Ext.getCmp('moveform');
+                                                    if (f.form.isValid()) {
+                                                        var values = f.form.getValues();
+                                                        values.tables = [];
+                                                        Ext.iterate(records, function (v) {
+                                                            values.tables.push(v.data.f_table_schema + "." + v.get("f_table_name"));
+                                                        });
+
+                                                        var param = {
+                                                            data: values
+                                                        };
+                                                        param = Ext.util.JSON.encode(param);
+                                                        Ext.Ajax.request({
+                                                            url: '/controllers/layer/schema',
+                                                            method: 'put',
+                                                            headers: {
+                                                                'Content-Type': 'application/json; charset=utf-8'
+                                                            },
+                                                            params: param,
+                                                            success: function () {
+                                                                store.reload();
+                                                                Ext.iterate(records, function (v) {
+                                                                    document.getElementById("wfseditor").contentWindow.window.cloud.removeTileLayerByName([
+                                                                        [v.data.f_table_schema + "." + v.get("f_table_name")]
+                                                                    ]);
+                                                                });
+                                                                document.getElementById("wfseditor").contentWindow.window.reLoadTree();
+                                                                resetButtons();
+                                                                winMoveTable.close(this);
+                                                                App.setAlert(App.STATUS_OK, "Layers moved");
+                                                            },
+                                                            failure: function (response) {
+                                                                winMoveTable.close(this);
+                                                                Ext.MessageBox.show({
+                                                                    title: 'Failure',
+                                                                    msg: __(Ext.decode(response.responseText).message),
+                                                                    buttons: Ext.MessageBox.OK,
+                                                                    width: 400,
+                                                                    height: 300,
+                                                                    icon: Ext.MessageBox.ERROR
+                                                                });
+                                                            }
+                                                        });
+                                                    } else {
+                                                        var s = '';
+                                                        Ext.iterate(f.form.getValues(), function (key, value) {
+                                                            s += String.format("{0} = {1}<br />", key, value);
+                                                        }, this);
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }).show(this);
                 }
             },
             '-',
@@ -451,7 +1534,113 @@ $(window).ready(function () {
                 disabled: true,
                 id: 'renamelayer-btn',
                 handler: function () {
-                    onRename();
+                    var record = grid.getSelectionModel().getSelected();
+                    if (!record) {
+                        App.setAlert(App.STATUS_NOTICE, __("You've to select a layer"));
+                        return false;
+                    }
+                    var winTableRename = new Ext.Window({
+                        title: __("Rename table") + " '" + record.data.f_table_name + "'",
+                        modal: true,
+                        layout: 'fit',
+                        width: 270,
+                        height: 80,
+                        closeAction: 'close',
+                        plain: true,
+                        border: false,
+                        items: [
+                            {
+                                defaults: {
+                                    border: false
+                                },
+                                layout: 'hbox',
+                                border: false,
+                                items: [
+                                    {
+                                        xtype: "form",
+                                        id: "tableRenameForm",
+                                        layout: "form",
+                                        bodyStyle: 'padding: 10px',
+                                        items: [
+                                            {
+                                                xtype: 'container',
+                                                border: false,
+                                                items: [
+                                                    {
+                                                        xtype: "textfield",
+                                                        name: 'name',
+                                                        emptyText: __('New name'),
+                                                        allowBlank: false,
+                                                        width: 150
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        layout: 'form',
+                                        bodyStyle: 'padding: 10px',
+                                        items: [
+                                            {
+                                                xtype: 'button',
+                                                text: __('Rename'),
+                                                handler: function () {
+                                                    var f = Ext.getCmp('tableRenameForm');
+                                                    if (f.form.isValid()) {
+                                                        var values = f.form.getValues();
+                                                        var param = {
+                                                            data: values
+                                                        };
+                                                        var name = record.data.f_table_schema + "." + record.data.f_table_name;
+                                                        param.id = record.id;
+                                                        param = Ext.util.JSON.encode(param);
+                                                        Ext.Ajax.request({
+                                                            url: '/controllers/layer/name/' + record.data.f_table_schema + "." + record.data.f_table_name,
+                                                            method: 'put',
+                                                            headers: {
+                                                                'Content-Type': 'application/json; charset=utf-8'
+                                                            },
+                                                            params: param,
+                                                            success: function () {
+                                                                winTableRename.close();
+                                                                resetButtons();
+                                                                Ext.getCmp('renamelayer-btn').setDisabled(true);
+                                                                try {
+                                                                    document.getElementById("wfseditor").contentWindow.window.cloud.removeTileLayerByName([
+                                                                        [name]
+                                                                    ]);
+                                                                } catch (e) {
+                                                                }
+                                                                document.getElementById("wfseditor").contentWindow.window.reLoadTree();
+                                                                store.reload();
+                                                                App.setAlert(App.STATUS_OK, __("layer rename"));
+                                                            },
+                                                            failure: function (response) {
+                                                                winTableRename.close();
+                                                                Ext.MessageBox.show({
+                                                                    title: __('Failure'),
+                                                                    msg: __(Ext.decode(response.responseText).message),
+                                                                    buttons: Ext.MessageBox.OK,
+                                                                    width: 400,
+                                                                    height: 300,
+                                                                    icon: Ext.MessageBox.ERROR
+                                                                });
+                                                            }
+                                                        });
+                                                    } else {
+                                                        var s = '';
+                                                        Ext.iterate(f.form.getValues(), function (key, value) {
+                                                            s += String.format("{0} = {1}<br />", key, value);
+                                                        }, this);
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }).show(this);
                 }
             },
             '-',
@@ -460,7 +1649,48 @@ $(window).ready(function () {
                 disabled: true,
                 id: 'deletelayer-btn',
                 handler: function () {
-                    onDelete();
+                    var records = grid.getSelectionModel().getSelections();
+                    if (records.length === 0) {
+                        App.setAlert(App.STATUS_NOTICE, __("You've to select a layer"));
+                        return false;
+                    }
+                    Ext.MessageBox.confirm(__('Confirm'), __('Are you sure you want to delete') + ' ' + records.length + ' ' + __('table(s)') + '?', function (btn) {
+                        if (btn === "yes") {
+                            var tables = [];
+                            Ext.iterate(records, function (v) {
+                                tables.push(v.get("_key_"));
+                            });
+                            var param = {
+                                data: tables
+                            };
+                            param = Ext.util.JSON.encode(param);
+                            Ext.Ajax.request({
+                                url: '/controllers/layer/records',
+                                method: 'delete',
+                                headers: {
+                                    'Content-Type': 'application/json; charset=utf-8'
+                                },
+                                params: param,
+                                success: function () {
+                                    store.reload();
+                                    resetButtons();
+                                    App.setAlert(App.STATUS_OK, records.length + " " + __("layers deleted"));
+                                },
+                                failure: function (response) {
+                                    Ext.MessageBox.show({
+                                        title: 'Failure',
+                                        msg: __(Ext.decode(response.responseText).message),
+                                        buttons: Ext.MessageBox.OK,
+                                        width: 400,
+                                        height: 300,
+                                        icon: Ext.MessageBox.ERROR
+                                    });
+                                }
+                            });
+                        } else {
+                            return false;
+                        }
+                    });
                 }
             },
             '-',
@@ -625,14 +1855,127 @@ $(window).ready(function () {
                     items: [
                         {
                             text: __('Rename schema'),
-                            handler: function () {
-                                onSchemaRename();
+                            handler: function (btn, ev) {
+                                var winSchemaRename = new Ext.Window({
+                                    title: __("Rename schema") + " '" + schema + "'",
+                                    modal: true,
+                                    layout: 'fit',
+                                    width: 270,
+                                    height: 80,
+                                    closeAction: 'close',
+                                    plain: true,
+                                    border: false,
+                                    items: [
+                                        {
+                                            defaults: {
+                                                border: false
+                                            },
+                                            layout: 'hbox',
+                                            border: false,
+                                            items: [
+                                                {
+                                                    xtype: "form",
+                                                    id: "schemaRenameForm",
+                                                    layout: "form",
+                                                    bodyStyle: 'padding: 10px',
+                                                    items: [
+                                                        {
+                                                            xtype: 'container',
+                                                            items: [
+                                                                {
+                                                                    xtype: "textfield",
+                                                                    name: 'name',
+                                                                    emptyText: __('New name'),
+                                                                    allowBlank: false,
+                                                                    width: 150
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    layout: 'form',
+                                                    bodyStyle: 'padding: 10px',
+                                                    items: [
+                                                        {
+                                                            xtype: 'button',
+                                                            text: __('Rename'),
+                                                            handler: function () {
+                                                                var f = Ext.getCmp('schemaRenameForm');
+                                                                if (f.form.isValid()) {
+                                                                    var values = f.form.getValues();
+                                                                    var param = {
+                                                                        data: values
+                                                                    };
+                                                                    param = Ext.util.JSON.encode(param);
+                                                                    Ext.Ajax.request({
+                                                                        url: '/controllers/database/schema',
+                                                                        method: 'put',
+                                                                        headers: {
+                                                                            'Content-Type': 'application/json; charset=utf-8'
+                                                                        },
+                                                                        params: param,
+                                                                        success: function (response) {
+                                                                            var data = eval('(' + response.responseText + ')');
+                                                                            window.location = "/store/" + screenName + "/" + data.data.name;
+                                                                        },
+                                                                        failure: function (response) {
+                                                                            winSchemaRename.close();
+                                                                            Ext.MessageBox.show({
+                                                                                title: __('Failure'),
+                                                                                msg: __(Ext.decode(response.responseText).message),
+                                                                                buttons: Ext.MessageBox.OK,
+                                                                                width: 400,
+                                                                                height: 300,
+                                                                                icon: Ext.MessageBox.ERROR
+                                                                            });
+                                                                        }
+                                                                    });
+                                                                } else {
+                                                                    var s = '';
+                                                                    Ext.iterate(f.form.getValues(), function (key, value) {
+                                                                        s += String.format("{0} = {1}<br />", key, value);
+                                                                    }, this);
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }).show(this);
                             }
                         },
                         {
                             text: __('Delete schema'),
-                            handler: function () {
-                                onSchemaDelete();
+                            handler: function (btn, ev) {
+                                Ext.MessageBox.confirm(__('Confirm'), __('Are you sure you want to do that? All layers in the schema will be deleted!'), function (btn) {
+                                    if (btn === "yes") {
+                                        Ext.Ajax.request({
+                                            url: '/controllers/database/schema',
+                                            method: 'delete',
+                                            headers: {
+                                                'Content-Type': 'application/json; charset=utf-8'
+                                            },
+                                            success: function (response) {
+                                                window.location = "/store/" + screenName + "/public";
+                                            },
+                                            failure: function (response) {
+                                                Ext.MessageBox.show({
+                                                    title: __('Failure'),
+                                                    msg: __(Ext.decode(response.responseText).message),
+                                                    buttons: Ext.MessageBox.OK,
+                                                    width: 400,
+                                                    height: 300,
+                                                    icon: Ext.MessageBox.ERROR
+                                                });
+                                            }
+                                        });
+                                    } else {
+                                        return false;
+                                    }
+                                });
                             }
                         }
 
@@ -706,161 +2049,6 @@ $(window).ready(function () {
     Ext.getCmp("schemabox").on('select', function (e) {
         window.location = "/store/" + screenName + "/" + e.value;
     });
-
-    function onRename() {
-        var record = grid.getSelectionModel().getSelected();
-        if (!record) {
-            App.setAlert(App.STATUS_NOTICE, __("You've to select a layer"));
-            return false;
-        }
-        var winTableRename = new Ext.Window({
-            title: __("Rename table") + " '" + record.data.f_table_name + "'",
-            modal: true,
-            layout: 'fit',
-            width: 270,
-            height: 80,
-            closeAction: 'close',
-            plain: true,
-            border: false,
-            items: [
-                {
-                    defaults: {
-                        border: false
-                    },
-                    layout: 'hbox',
-                    border: false,
-                    items: [
-                        {
-                            xtype: "form",
-                            id: "tableRenameForm",
-                            layout: "form",
-                            bodyStyle: 'padding: 10px',
-                            items: [
-                                {
-                                    xtype: 'container',
-                                    border: false,
-                                    items: [
-                                        {
-                                            xtype: "textfield",
-                                            name: 'name',
-                                            emptyText: __('New name'),
-                                            allowBlank: false,
-                                            width: 150
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                            layout: 'form',
-                            bodyStyle: 'padding: 10px',
-                            items: [
-                                {
-                                    xtype: 'button',
-                                    text: __('Rename'),
-                                    handler: function () {
-                                        var f = Ext.getCmp('tableRenameForm');
-                                        if (f.form.isValid()) {
-                                            var values = f.form.getValues();
-                                            var param = {
-                                                data: values
-                                            };
-                                            var name = record.data.f_table_schema + "." + record.data.f_table_name;
-                                            param.id = record.id;
-                                            param = Ext.util.JSON.encode(param);
-                                            Ext.Ajax.request({
-                                                url: '/controllers/layer/name/' + record.data.f_table_schema + "." + record.data.f_table_name,
-                                                method: 'put',
-                                                headers: {
-                                                    'Content-Type': 'application/json; charset=utf-8'
-                                                },
-                                                params: param,
-                                                success: function () {
-                                                    winTableRename.close();
-                                                    resetButtons();
-                                                    Ext.getCmp('renamelayer-btn').setDisabled(true);
-                                                    try {
-                                                        document.getElementById("wfseditor").contentWindow.window.cloud.removeTileLayerByName([
-                                                            [name]
-                                                        ]);
-                                                    } catch (e) {
-                                                    }
-                                                    document.getElementById("wfseditor").contentWindow.window.reLoadTree();
-                                                    store.reload();
-                                                    App.setAlert(App.STATUS_OK, __("layer rename"));
-                                                },
-                                                failure: function (response) {
-                                                    winTableRename.close();
-                                                    Ext.MessageBox.show({
-                                                        title: __('Failure'),
-                                                        msg: __(Ext.decode(response.responseText).message),
-                                                        buttons: Ext.MessageBox.OK,
-                                                        width: 400,
-                                                        height: 300,
-                                                        icon: Ext.MessageBox.ERROR
-                                                    });
-                                                }
-                                            });
-                                        } else {
-                                            var s = '';
-                                            Ext.iterate(f.form.getValues(), function (key, value) {
-                                                s += String.format("{0} = {1}<br />", key, value);
-                                            }, this);
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }).show(this);
-    }
-
-    function onDelete() {
-        var records = grid.getSelectionModel().getSelections();
-        if (records.length === 0) {
-            App.setAlert(App.STATUS_NOTICE, __("You've to select a layer"));
-            return false;
-        }
-        Ext.MessageBox.confirm(__('Confirm'), __('Are you sure you want to delete') + ' ' + records.length + ' ' + __('table(s)') + '?', function (btn) {
-            if (btn === "yes") {
-                var tables = [];
-                Ext.iterate(records, function (v) {
-                    tables.push(v.data.f_table_schema + "." + v.get("f_table_name"));
-                });
-                var param = {
-                    data: tables
-                };
-                param = Ext.util.JSON.encode(param);
-                Ext.Ajax.request({
-                    url: '/controllers/layer/records',
-                    method: 'delete',
-                    headers: {
-                        'Content-Type': 'application/json; charset=utf-8'
-                    },
-                    params: param,
-                    success: function () {
-                        store.reload();
-                        resetButtons();
-                        App.setAlert(App.STATUS_OK, records.length + " " + __("layers deleted"));
-                    },
-                    failure: function (response) {
-                        Ext.MessageBox.show({
-                            title: 'Failure',
-                            msg: __(Ext.decode(response.responseText).message),
-                            buttons: Ext.MessageBox.OK,
-                            width: 400,
-                            height: 300,
-                            icon: Ext.MessageBox.ERROR
-                        });
-                    }
-                });
-            } else {
-                return false;
-            }
-        });
-    }
 
     onAdd = function (btn, ev) {
         addShape.init();
@@ -979,243 +2167,6 @@ $(window).ready(function () {
         addVector();
     };
 
-    onMove = function (btn, ev) {
-        var records = grid.getSelectionModel().getSelections();
-        if (records.length === 0) {
-            App.setAlert(App.STATUS_NOTICE, __("You've to select a layer"));
-            return false;
-        }
-        var winMoveTable = new Ext.Window({
-            title: __("Move") + " " + records.length + " " + __("selected to another schema"),
-            modal: true,
-            layout: 'fit',
-            width: 270,
-            height: 80,
-            closeAction: 'close',
-            plain: true,
-            border: false,
-            items: [
-                {
-                    defaults: {
-                        border: false
-                    },
-                    layout: 'hbox',
-                    border: false,
-                    items: [
-                        {
-                            xtype: "form",
-                            id: "moveform",
-                            layout: "form",
-                            bodyStyle: 'padding: 10px',
-                            items: [
-                                {
-                                    xtype: 'container',
-                                    border: false,
-                                    items: [
-                                        {
-                                            xtype: "combo",
-                                            store: schemasStore,
-                                            displayField: 'schema',
-                                            editable: false,
-                                            mode: 'local',
-                                            triggerAction: 'all',
-                                            value: schema,
-                                            name: 'schema',
-                                            width: 150
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                            layout: 'form',
-                            bodyStyle: 'padding: 10px',
-                            border: false,
-                            items: [
-                                {
-                                    xtype: 'button',
-                                    text: 'Move',
-                                    handler: function () {
-                                        var f = Ext.getCmp('moveform');
-                                        if (f.form.isValid()) {
-                                            var values = f.form.getValues();
-                                            values.tables = [];
-                                            Ext.iterate(records, function (v) {
-                                                values.tables.push(v.data.f_table_schema + "." + v.get("f_table_name"));
-                                            });
-
-                                            var param = {
-                                                data: values
-                                            };
-                                            param = Ext.util.JSON.encode(param);
-                                            Ext.Ajax.request({
-                                                url: '/controllers/layer/schema',
-                                                method: 'put',
-                                                headers: {
-                                                    'Content-Type': 'application/json; charset=utf-8'
-                                                },
-                                                params: param,
-                                                success: function () {
-                                                    store.reload();
-                                                    Ext.iterate(records, function (v) {
-                                                        document.getElementById("wfseditor").contentWindow.window.cloud.removeTileLayerByName([
-                                                            [v.data.f_table_schema + "." + v.get("f_table_name")]
-                                                        ]);
-                                                    });
-                                                    document.getElementById("wfseditor").contentWindow.window.reLoadTree();
-                                                    resetButtons();
-                                                    winMoveTable.close(this);
-                                                    App.setAlert(App.STATUS_OK, "Layers moved");
-                                                },
-                                                failure: function (response) {
-                                                    winMoveTable.close(this);
-                                                    Ext.MessageBox.show({
-                                                        title: 'Failure',
-                                                        msg: __(Ext.decode(response.responseText).message),
-                                                        buttons: Ext.MessageBox.OK,
-                                                        width: 400,
-                                                        height: 300,
-                                                        icon: Ext.MessageBox.ERROR
-                                                    });
-                                                }
-                                            });
-                                        } else {
-                                            var s = '';
-                                            Ext.iterate(f.form.getValues(), function (key, value) {
-                                                s += String.format("{0} = {1}<br />", key, value);
-                                            }, this);
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }).show(this);
-    };
-
-    onSchemaRename = function (btn, ev) {
-        var winSchemaRename = new Ext.Window({
-            title: __("Rename schema") + " '" + schema + "'",
-            modal: true,
-            layout: 'fit',
-            width: 270,
-            height: 80,
-            closeAction: 'close',
-            plain: true,
-            border: false,
-            items: [
-                {
-                    defaults: {
-                        border: false
-                    },
-                    layout: 'hbox',
-                    border: false,
-                    items: [
-                        {
-                            xtype: "form",
-                            id: "schemaRenameForm",
-                            layout: "form",
-                            bodyStyle: 'padding: 10px',
-                            items: [
-                                {
-                                    xtype: 'container',
-                                    items: [
-                                        {
-                                            xtype: "textfield",
-                                            name: 'name',
-                                            emptyText: __('New name'),
-                                            allowBlank: false,
-                                            width: 150
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                            layout: 'form',
-                            bodyStyle: 'padding: 10px',
-                            items: [
-                                {
-                                    xtype: 'button',
-                                    text: __('Rename'),
-                                    handler: function () {
-                                        var f = Ext.getCmp('schemaRenameForm');
-                                        if (f.form.isValid()) {
-                                            var values = f.form.getValues();
-                                            var param = {
-                                                data: values
-                                            };
-                                            param = Ext.util.JSON.encode(param);
-                                            Ext.Ajax.request({
-                                                url: '/controllers/database/schema',
-                                                method: 'put',
-                                                headers: {
-                                                    'Content-Type': 'application/json; charset=utf-8'
-                                                },
-                                                params: param,
-                                                success: function (response) {
-                                                    var data = eval('(' + response.responseText + ')');
-                                                    window.location = "/store/" + screenName + "/" + data.data.name;
-                                                },
-                                                failure: function (response) {
-                                                    winSchemaRename.close();
-                                                    Ext.MessageBox.show({
-                                                        title: __('Failure'),
-                                                        msg: __(Ext.decode(response.responseText).message),
-                                                        buttons: Ext.MessageBox.OK,
-                                                        width: 400,
-                                                        height: 300,
-                                                        icon: Ext.MessageBox.ERROR
-                                                    });
-                                                }
-                                            });
-                                        } else {
-                                            var s = '';
-                                            Ext.iterate(f.form.getValues(), function (key, value) {
-                                                s += String.format("{0} = {1}<br />", key, value);
-                                            }, this);
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }).show(this);
-    };
-
-    onSchemaDelete = function (btn, ev) {
-        Ext.MessageBox.confirm(__('Confirm'), __('Are you sure you want to do that? All layers in the schema will be deleted!'), function (btn) {
-            if (btn === "yes") {
-                Ext.Ajax.request({
-                    url: '/controllers/database/schema',
-                    method: 'delete',
-                    headers: {
-                        'Content-Type': 'application/json; charset=utf-8'
-                    },
-                    success: function (response) {
-                        window.location = "/store/" + screenName + "/public";
-                    },
-                    failure: function (response) {
-                        Ext.MessageBox.show({
-                            title: __('Failure'),
-                            msg: __(Ext.decode(response.responseText).message),
-                            buttons: Ext.MessageBox.OK,
-                            width: 400,
-                            height: 300,
-                            icon: Ext.MessageBox.ERROR
-                        });
-                    }
-                });
-            } else {
-                return false;
-            }
-        });
-    };
-
     function onEdit() {
         var records = grid.getSelectionModel().getSelections(),
             s = Ext.getCmp("structurepanel"),
@@ -1232,36 +2183,6 @@ $(window).ready(function () {
             s.removeAll();
             s.doLayout();
         }
-    }
-
-    function onEditCartomobile(btn, ev) {
-        var record = grid.getSelectionModel().getSelected();
-        if (!record) {
-            App.setAlert(App.STATUS_NOTICE, __("You've to select a layer"));
-            return false;
-        }
-        cartomobile.grid = null;
-        cartomobile.init(record, screenName);
-        cartomobile.winCartomobile = new Ext.Window({
-            title: __("CartoMobile settings for the layer") + " '" + record.get("f_table_name") + "'",
-            modal: true,
-            layout: 'fit',
-            width: 750,
-            height: 350,
-            initCenter: false,
-            x: 100,
-            y: 100,
-            closeAction: 'close',
-            plain: true,
-            frame: true,
-            border: false,
-            items: [new Ext.Panel({
-                frame: false,
-                border: false,
-                layout: 'border',
-                items: [cartomobile.grid]
-            })]
-        }).show(this);
     }
 
     function onSave() {
@@ -1346,447 +2267,6 @@ $(window).ready(function () {
         updateLegend();
     };
 
-    function onEditMoreSettings(btn, ev) {
-        var record = grid.getSelectionModel().getSelected();
-        if (!record) {
-            App.setAlert(App.STATUS_NOTICE, __("You've to select a layer"));
-            return false;
-        }
-        var r = record;
-        winMoreSettings = new Ext.Window({
-            title: __("Advanced settings on") + " '" + record.get("f_table_name") + "'",
-            modal: true,
-            layout: 'fit',
-            width: 450,
-            height: 420,
-            closeAction: 'close',
-            plain: true,
-            border: false,
-            items: [new Ext.Panel({
-                frame: false,
-                border: false,
-                width: 500,
-                height: 400,
-                layout: 'border',
-                items: [new Ext.FormPanel({
-                    labelWidth: 100,
-                    // label settings here cascade unless overridden
-                    frame: false,
-                    border: false,
-                    region: 'center',
-                    id: "detailform",
-                    bodyStyle: 'padding: 10px 10px 0 10px;',
-                    items: [
-                        {
-                            name: '_key_',
-                            xtype: 'hidden',
-                            value: r.data._key_
-
-                        },
-                        {
-                            width: 300,
-                            xtype: 'textfield',
-                            fieldLabel: __('Meta data URL'),
-                            name: 'meta_url',
-                            value: r.data.meta_url
-
-                        },
-                        {
-                            width: 300,
-                            xtype: 'textfield',
-                            fieldLabel: __('WMS source'),
-                            name: 'wmssource',
-                            value: r.data.wmssource
-                        },
-                        {
-                            xtype: 'combo',
-                            store: new Ext.data.ArrayStore({
-                                fields: ['name', 'value'],
-                                data: [
-                                    ['true', true],
-                                    ['false', false]
-                                ]
-                            }),
-                            displayField: 'name',
-                            valueField: 'value',
-                            mode: 'local',
-                            typeAhead: false,
-                            editable: false,
-                            triggerAction: 'all',
-                            name: 'not_querable',
-                            fieldLabel: 'Not querable',
-                            value: r.data.not_querable
-                        },
-                        {
-                            xtype: 'combo',
-                            store: new Ext.data.ArrayStore({
-                                fields: ['name', 'value'],
-                                data: [
-                                    ['true', true],
-                                    ['false', false]
-                                ]
-                            }),
-                            displayField: 'name',
-                            valueField: 'value',
-                            mode: 'local',
-                            typeAhead: false,
-                            editable: false,
-                            triggerAction: 'all',
-                            name: 'baselayer',
-                            fieldLabel: 'Is baselayer',
-                            value: r.data.baselayer
-                        },
-                        {
-                            width: 300,
-                            xtype: 'textfield',
-                            fieldLabel: __('SQL where clause'),
-                            name: 'filter',
-                            value: r.data.filter
-                        },
-                        {
-                            width: 300,
-                            xtype: 'textfield',
-                            fieldLabel: __('File source'),
-                            name: 'bitmapsource',
-                            value: r.data.bitmapsource
-                        },
-                        {
-                            xtype: 'combo',
-                            store: new Ext.data.ArrayStore({
-                                fields: ['name', 'value'],
-                                data: [
-                                    ['true', true],
-                                    ['false', false]
-                                ]
-                            }),
-                            displayField: 'name',
-                            valueField: 'value',
-                            mode: 'local',
-                            typeAhead: false,
-                            editable: false,
-                            triggerAction: 'all',
-                            name: 'enablesqlfilter',
-                            fieldLabel: 'Enable sql filtering in Viewer',
-                            value: r.data.enablesqlfilter
-                        },
-                        {
-                            width: 300,
-                            xtype: 'textfield',
-                            fieldLabel: __('ES trigger table'),
-                            name: 'triggertable',
-                            value: r.data.triggertable
-                        },
-                        {
-                            width: 300,
-                            xtype: 'textarea',
-                            height: 100,
-                            fieldLabel: __('View definition'),
-                            name: 'viewdefinition',
-                            value: r.json.viewdefinition,
-                            disabled: true
-                        }
-                    ],
-                    buttons: [
-                        {
-                            text: '<i class="icon-ok btn-gc"></i> ' + __('Update'),
-                            handler: function () {
-                                var f = Ext.getCmp('detailform');
-                                if (f.form.isValid()) {
-                                    var values = f.form.getValues();
-
-                                    for (var key in values) {
-                                        if (values.hasOwnProperty(key)) {
-                                            values[key] = encodeURIComponent(values[key]);
-                                        }
-                                    }
-
-                                    var param = {
-                                        data: values
-                                    };
-                                    param = Ext.util.JSON.encode(param);
-                                    Ext.Ajax.request({
-                                        url: '/controllers/layer/records/_key_',
-                                        method: 'put',
-                                        headers: {
-                                            'Content-Type': 'application/json; charset=utf-8'
-                                        },
-                                        params: param,
-                                        success: function () {
-                                            //TODO deselect/select
-                                            grid.getSelectionModel().clearSelections();
-                                            store.reload();
-                                            groupsStore.load();
-                                            App.setAlert(App.STATUS_NOTICE, __("Settings updated"));
-                                            winMoreSettings.close();
-                                        },
-                                        failure: function (response) {
-                                            winMoreSettings.close();
-                                            Ext.MessageBox.show({
-                                                title: 'Failure',
-                                                msg: __(Ext.decode(response.responseText).message),
-                                                buttons: Ext.MessageBox.OK,
-                                                width: 400,
-                                                height: 300,
-                                                icon: Ext.MessageBox.ERROR
-                                            });
-                                        }
-                                    });
-                                } else {
-                                    var s = '';
-                                    Ext.iterate(f.form.getValues(), function (key, value) {
-                                        s += String.format("{0} = {1}<br />", key, value);
-                                    }, this);
-                                }
-                            }
-                        }
-                    ]
-                })]
-            })]
-        });
-        winMoreSettings.show(this);
-    }
-
-    function onGlobalSettings(btn, ev) {
-        new Ext.Window({
-            title: "Services",
-            modal: true,
-            width: 850,
-            height: 430,
-            initCenter: true,
-            closeAction: 'hide',
-            border: false,
-            layout: 'border',
-            items: [
-                new Ext.Panel({
-                    region: "center",
-                    layout: 'border',
-                    border: false,
-
-                    items: [
-                        new Ext.Panel({
-                            border: false,
-                            region: "center",
-                            items: [
-                                httpAuth.form,
-                                apiKey.form
-                            ]
-                        }),
-
-                        new Ext.Panel({
-                            region: "south",
-                            border: false,
-                            bodyStyle: {
-                                background: '#777',
-                                color: '#fff',
-                                padding: '7px'
-                            },
-                            html: __("HTTP Basic auth password and API key are set for the specific (sub) user.")
-                        })
-                    ]
-
-                }), new Ext.Panel({
-                    layout: "border",
-                    region: "east",
-                    width: 600,
-                    id: "service-dialog",
-                    items: [
-                        new Ext.Panel({
-                            border: false,
-                            region: "center",
-                            defaults: {
-                                bodyStyle: {
-                                    background: '#ffffff',
-                                    padding: '7px'
-                                },
-                                border: false
-                            },
-                            items: [
-                                new Ext.Panel({
-                                    contentEl: "wfs-dialog"
-                                }),
-                                new Ext.Panel({
-                                    contentEl: "wms-dialog"
-                                }),
-                                new Ext.Panel({
-                                    contentEl: "tms-dialog"
-                                }),
-                                new Ext.Panel({
-                                    contentEl: "sql-dialog"
-                                }),
-                                new Ext.Panel({
-                                    contentEl: "elasticsearch-dialog"
-                                })
-                            ]
-                        })
-                    ]
-                })]
-        }).show(this);
-    }
-
-    function onPrivileges(btn, ev) {
-        var records = grid.getSelectionModel().getSelections();
-        if (records.length === 0) {
-            App.setAlert(App.STATUS_NOTICE, __("You've to select a layer"));
-            return false;
-        }
-        var privilegesStore = new Ext.data.Store({
-            writer: new Ext.data.JsonWriter({
-                writeAllFields: false,
-                encode: false
-            }),
-            reader: new Ext.data.JsonReader(
-                {
-                    successProperty: 'success',
-                    idProperty: 'subuser',
-                    root: 'data',
-                    messageProperty: 'message'
-                },
-                [
-                    {
-                        name: "subuser"
-                    },
-                    {
-                        name: "privileges"
-                    },
-                    {
-                        name: "group"
-                    }
-                ]
-            ),
-            proxy: new Ext.data.HttpProxy({
-                restful: true,
-                type: 'json',
-                api: {
-                    read: '/controllers/layer/privileges/' + records[0].get("_key_")
-                },
-                listeners: {
-                    exception: function (proxy, type, action, options, response, arg) {
-                        if (type === 'remote') {
-                            var message = "<p>" + __("Sorry, but something went wrong. The whole transaction is rolled back. Try to correct the problem and hit save again. You can look at the error below, maybe it will give you a hint about what's wrong") + "</p><br/><textarea rows=5' cols='31'>" + __(response.message) + "</textarea>";
-                            Ext.MessageBox.show({
-                                title: __('Failure'),
-                                msg: message,
-                                buttons: Ext.MessageBox.OK,
-                                width: 300,
-                                height: 300
-                            });
-                        } else {
-                            privilgesWin.close();
-                            Ext.MessageBox.show({
-                                title: __("Failure"),
-                                msg: __(Ext.decode(response.responseText).message),
-                                buttons: Ext.MessageBox.OK,
-                                width: 300,
-                                height: 300
-                            });
-                        }
-                    }
-                }
-            }),
-            autoSave: true
-        });
-        privilegesStore.load();
-        var privilgesWin = new Ext.Window({
-            title: __("Grant privileges to sub-users on") + " '" + records[0].get("f_table_name") + "'",
-            modal: true,
-            width: 600,
-            height: 330,
-            initCenter: true,
-            closeAction: 'hide',
-            border: false,
-            layout: 'border',
-            items: [
-                new Ext.Panel({
-                    height: 500,
-                    region: "center",
-                    layout: 'border',
-                    border: false,
-                    items: [
-                        new Ext.grid.EditorGridPanel({
-                            store: privilegesStore,
-                            viewConfig: {
-                                forceFit: true
-                            },
-                            region: 'center',
-                            frame: false,
-                            border: false,
-                            sm: new Ext.grid.RowSelectionModel({
-                                singleSelect: true
-                            }),
-                            cm: new Ext.grid.ColumnModel({
-                                defaults: {
-                                    sortable: true
-                                },
-                                columns: [
-                                    {
-                                        header: __('Sub-user'),
-                                        dataIndex: 'subuser',
-                                        editable: false,
-                                        width: 50
-                                    },
-                                    {
-                                        header: __('Privileges'),
-                                        dataIndex: 'privileges',
-                                        sortable: false,
-                                        renderer: function (val, cell, record, rowIndex, colIndex, store) {
-                                            var _key_ = records[0].get("_key_"), disabled;
-                                            if (typeof subUserGroups[record.data.subuser] === "undefined" || subUserGroups[record.data.subuser] === "") {
-                                                disabled = "";
-                                            } else {
-                                                disabled = "disabled";
-                                            }
-                                            var retval =
-                                                    '<input ' + disabled + ' data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updatePrivileges(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="none" name="' + rowIndex + '"' + ((val === 'none') ? ' checked="checked"' : '') + '>&nbsp;' + __('None') + '&nbsp;&nbsp;&nbsp;' +
-                                                    '<input ' + disabled + ' data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updatePrivileges(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="read" name="' + rowIndex + '"' + ((val === 'read') ? ' checked="checked"' : '') + '>&nbsp;' + __('Only read') + '&nbsp;&nbsp;&nbsp;' +
-                                                    '<input ' + disabled + ' data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updatePrivileges(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="write" name="' + rowIndex + '"' + ((val === 'write') ? ' checked="checked"' : '') + '>&nbsp;' + __('Read and write') + '&nbsp;&nbsp;&nbsp;' +
-                                                    '<input ' + disabled + ' data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updatePrivileges(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="all" name="' + rowIndex + '"' + ((val === 'all') ? ' checked="checked"' : '') + '>&nbsp;' + __('All') + '&nbsp;&nbsp;&nbsp;'
-                                                ;
-                                            return retval;
-                                        }
-                                    },
-                                    {
-                                        header: __('Inherit privileges from'),
-                                        dataIndex: 'group',
-                                        editable: false,
-                                        width: 50,
-                                        renderer: function (val, cell, record, rowIndex, colIndex, store) {
-                                            if (typeof subUserGroups[record.data.subuser] !== "undefined" && subUserGroups[record.data.subuser] !== "") {
-                                                return subUserGroups[record.data.subuser];
-                                            }
-                                        }
-                                    }
-                                ]
-                            })
-                        }),
-                        new Ext.Panel({
-                                border: false,
-                                region: "south",
-                                bodyStyle: {
-                                    background: '#777',
-                                    color: '#fff',
-                                    padding: '7px'
-                                },
-                                html: "<ul>" +
-                                "<li>" + "<b>" + __("None") + "</b>: " + __("The layer doesn't exist for the sub-user.") + "</li>" +
-                                "<li>" + "<b>" + __("Only read") + "</b>: " + __("The sub-user can see and query the layer.") + "</li>" +
-                                "<li>" + "<b>" + __("Read and write") + "</b>: " + __("The sub-user can edit the layer.") + "</li>" +
-                                "<li>" + "<b>" + __("All") + "</b>: " + __("The sub-user change properties like style and alter table structure.") + "</li>" +
-                                "<ul>" +
-                                "<br><p>" +
-                                __("If a sub-user is set to inherit the privileges of another sub-user, you can't change the privileges of the sub-user.") +
-                                "</p>" +
-                                "<br><p>" +
-                                __("The privileges are granted for both Admin and external services like WMS and WFS.") +
-                                "</p>"
-                            }
-                        )
-                    ]
-
-                })
-            ]
-        }).show();
-    }
-
     updatePrivileges = function (subuser, key, privileges) {
         var param = {
             data: {
@@ -1815,230 +2295,6 @@ $(window).ready(function () {
             }
         });
     };
-
-    // Workflow
-    function onWorkflow(btn, ev) {
-        var records = grid.getSelectionModel().getSelections(), workflowWin;
-        if (records.length === 0) {
-            App.setAlert(App.STATUS_NOTICE, __("You've to select a layer"));
-            return false;
-        }
-        var workflowStore = new Ext.data.Store({
-            writer: new Ext.data.JsonWriter({
-                writeAllFields: false,
-                encode: false
-            }),
-            reader: new Ext.data.JsonReader(
-                {
-                    successProperty: 'success',
-                    idProperty: 'subuser',
-                    root: 'data',
-                    messageProperty: 'message'
-                },
-                [
-                    {
-                        name: "subuser"
-                    },
-                    {
-                        name: "roles"
-                    }
-                ]
-            ),
-            proxy: new Ext.data.HttpProxy({
-                restful: true,
-                type: 'json',
-                api: {
-                    read: '/controllers/layer/roles/' + records[0].get("_key_")
-                },
-                listeners: {
-                    exception: function (proxy, type, action, options, response, arg) {
-                        if (type === 'remote') {
-                            var message = "<p>" + __("Sorry, but something went wrong. The whole transaction is rolled back. Try to correct the problem and hit save again. You can look at the error below, maybe it will give you a hint about what's wrong") + "</p><br/><textarea rows=5' cols='31'>" + __(response.message) + "</textarea>";
-                            Ext.MessageBox.show({
-                                title: __('Failure'),
-                                msg: message,
-                                buttons: Ext.MessageBox.OK,
-                                width: 300,
-                                height: 300
-                            });
-                        } else {
-                            workflowWin.close();
-                            Ext.MessageBox.show({
-                                title: __("Failure"),
-                                msg: __(Ext.decode(response.responseText).message),
-                                buttons: Ext.MessageBox.OK,
-                                width: 300,
-                                height: 300
-                            });
-                        }
-                    }
-                }
-            }),
-            autoSave: true
-        });
-
-        Ext.Ajax.request({
-            url: '/controllers/table/checkcolumn/' + records[0].get("f_table_schema") + "." + records[0].get("f_table_name") + "/gc2_version_gid",
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json; charset=utf-8'
-            },
-            success: function (response) {
-                var r = Ext.decode(response.responseText);
-                if (!r.exists) {
-                    Ext.MessageBox.show({
-                        title: 'Failure',
-                        msg: __("The table must be versioned"),
-                        buttons: Ext.MessageBox.OK,
-                        width: 400,
-                        height: 300,
-                        icon: Ext.MessageBox.ERROR
-                    });
-                    return false;
-                } else {
-                    Ext.Ajax.request({
-                        url: '/controllers/table/checkcolumn/' + records[0].get("f_table_schema") + "." + records[0].get("f_table_name") + "/gc2_status",
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json; charset=utf-8'
-                        },
-                        success: function (response) {
-                            var r = Ext.decode(response.responseText), go;
-                            go = function () {
-                                workflowWin = new Ext.Window({
-                                    title: __("Apply role to sub-users on") + " '" + records[0].get("f_table_name") + "'",
-                                    modal: true,
-                                    width: 500,
-                                    height: 330,
-                                    initCenter: true,
-                                    closeAction: 'hide',
-                                    border: false,
-                                    layout: 'border',
-                                    items: [
-                                        new Ext.Panel({
-                                            height: 200,
-                                            border: false,
-                                            region: "center",
-                                            items: [
-                                                new Ext.grid.EditorGridPanel({
-                                                    store: workflowStore,
-                                                    viewConfig: {
-                                                        forceFit: true
-                                                    },
-                                                    height: 200,
-                                                    region: 'center',
-                                                    frame: false,
-                                                    border: false,
-                                                    sm: new Ext.grid.RowSelectionModel({
-                                                        singleSelect: true
-                                                    }),
-                                                    cm: new Ext.grid.ColumnModel({
-                                                        defaults: {
-                                                            sortable: true
-                                                        },
-                                                        columns: [
-                                                            {
-                                                                header: __('Sub-user'),
-                                                                dataIndex: 'subuser',
-                                                                editable: false,
-                                                                width: 50
-                                                            },
-                                                            {
-                                                                header: __('Role'),
-                                                                dataIndex: 'roles',
-                                                                sortable: false,
-                                                                renderer: function (val, cell, record, rowIndex, colIndex, store) {
-                                                                    var _key_ = records[0].get("_key_");
-                                                                    var retval =
-                                                                            '<input data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updateWorkflow(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="none" name="' + rowIndex + '"' + ((val === 'none') ? ' checked="checked"' : '') + '>&nbsp;' + __('None') + '&nbsp;&nbsp;&nbsp;' +
-                                                                            '<input data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updateWorkflow(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="author" name="' + rowIndex + '"' + ((val === 'author') ? ' checked="checked"' : '') + '>&nbsp;' + __('Author') + '&nbsp;&nbsp;&nbsp;' +
-                                                                            '<input data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updateWorkflow(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="reviewer" name="' + rowIndex + '"' + ((val === 'reviewer') ? ' checked="checked"' : '') + '>&nbsp;' + __('Reviewer') + '&nbsp;&nbsp;&nbsp;' +
-                                                                            '<input data-key="' + _key_ + '" data-subuser="' + record.data.subuser + '" onclick="updateWorkflow(this.getAttribute(\'data-subuser\'),this.getAttribute(\'data-key\'),this.value)" type="radio" value="publisher" name="' + rowIndex + '"' + ((val === 'publisher') ? ' checked="checked"' : '') + '>&nbsp;' + __('Publisher') + '&nbsp;&nbsp;&nbsp;'
-                                                                        ;
-                                                                    return retval;
-                                                                }
-                                                            }
-                                                        ]
-                                                    })
-                                                }),
-                                                new Ext.Panel({
-                                                        height: 110,
-                                                        border: false,
-                                                        region: "south",
-                                                        bodyStyle: {
-                                                            background: '#777',
-                                                            color: '#fff',
-                                                            padding: '7px'
-                                                        },
-                                                        html: "<ul>" +
-                                                        "<li>" + "<b>" + __("None") + "</b>: " + __("The layer doesn't exist for the sub-user.") + "</li>" +
-                                                        "<li>" + "<b>" + __("Only read") + "</b>: " + __("The sub-user can see and query the layer.") + "</li>" +
-                                                        "<li>" + "<b>" + __("Read and write") + "</b>: " + __("The sub-user can edit the layer.") + "</li>" +
-                                                        "<ul>" +
-                                                        "<br><p>" +
-                                                        __("The privileges are granted for both Admin and external services like WMS and WFS.") +
-                                                        "</p>"
-                                                    }
-                                                )
-                                            ]
-
-                                        })
-                                    ]
-                                }).show();
-                                workflowStore.load();
-                            };
-                            if (!r.exists) {
-                                Ext.MessageBox.confirm(__('Confirm'), __("You are about to .....") + " '" + records[0].get("f_table_name") + "'. " + __("Are you sure?"), function (btn) {
-                                    if (btn === "yes") {
-                                        Ext.Ajax.request({
-                                            url: '/controllers/table/workflow/' + records[0].get("f_table_schema") + "." + records[0].get("f_table_name"),
-                                            method: 'PUT',
-                                            headers: {
-                                                'Content-Type': 'application/json; charset=utf-8'
-                                            },
-                                            success: function () {
-                                                tableStructure.grid.getStore().reload();
-                                                go();
-                                            },
-                                            failure: function (response) {
-                                                Ext.MessageBox.show({
-                                                    title: 'Failure',
-                                                    msg: __(Ext.decode(response.responseText).message),
-                                                    buttons: Ext.MessageBox.OK,
-                                                    width: 400,
-                                                    height: 300,
-                                                    icon: Ext.MessageBox.ERROR
-                                                });
-                                            }
-                                        });
-                                    } else {
-                                        return false;
-
-                                    }
-                                });
-                            } else {
-                                go();
-                            }
-                        },
-                        failure: function (response) {
-                            Ext.MessageBox.show({
-                                title: 'Failure',
-                                msg: __(Ext.decode(response.responseText).message),
-                                buttons: Ext.MessageBox.OK,
-                                width: 400,
-                                height: 300,
-                                icon: Ext.MessageBox.ERROR
-                            });
-                        }
-                    });
-
-                }
-
-            }
-        });
-
-
-    }
 
     updateWorkflow = function (subuser, key, roles) {
         var param = {
@@ -2119,10 +2375,9 @@ $(window).ready(function () {
     };
 
     // define a template to use for the detail view
-    var bookTplMarkup = ['<table>' +
-    '<tr class="x-grid3-row"><td width="70"><b>Srid</b></td><td width="130">{srid}</td><td width="90"><b>' + __('Created') + '</b></td><td>{created}</td></tr>' +
-    '<tr class="x-grid3-row"><td><b>' + __('Geom field') + '</b></td><td>{f_geometry_column}</td><td><b>' + __('Last modified') + '</b></td><td>{lastmodified}</td>' +
-    '</tr>' +
+    var bookTplMarkup = ['<table border="0">' +
+    '<tr class="x-grid3-row"><td class="bottom-info-bar-param"><b>' + __('Srid') + '</b></td><td >{srid}</td><td class="bottom-info-bar-pipe">|</td><td class="bottom-info-bar-param"><b>' + __('Key') + '</b></td><td >{_key_}</td><td class="bottom-info-bar-pipe">|</td><td class="bottom-info-bar-param"><b>' + __('Tags') + '</b></td><td>{tags}</td></tr>' +
+    '<tr class="x-grid3-row"><td class="bottom-info-bar-param"><b>' + __('Geom field') + '</b></td><td>{f_geometry_column}</td><td class="bottom-info-bar-pipe">|</td><td class="bottom-info-bar-param"><b>' + __('Created') + '</b></td><td>{created}</td><td class="bottom-info-bar-pipe">|</td></td><td class="bottom-info-bar-param"><b>' + __('Guid') + '</b></td><td>{uuid}</td></tr>' +
     '</table>'];
     var bookTpl = new Ext.Template(bookTplMarkup);
     var ct = new Ext.Panel({
