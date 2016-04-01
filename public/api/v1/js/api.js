@@ -711,7 +711,7 @@ var mygeocloud_ol = (function () {
         var geolocate = new OpenLayers.Control.Geolocate({
             bind: false,
             geolocationOptions: {
-                enableHighAccuracy: false,
+                enableHighAccuracy: true,
                 maximumAge: 0,
                 timeout: 7000
             }

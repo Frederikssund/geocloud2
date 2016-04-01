@@ -198,7 +198,7 @@ class Processvector extends \app\inc\Controller
                 }
             }
         }
-        $response['cmd'] = $cmd;
+        //$response['cmd'] = $cmd;
         return $response;
     }
 }
